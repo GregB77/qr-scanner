@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Scanner QR vers Google Sheet</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    #reader { width: 320px; margin: auto; }
+    #status { margin-top: 15px; font-weight: bold; color: green; }
+  </style>
+</head>
+<body>
+  <h2>Scanner un QR Code</h2>
+  <div id="reader"></div>
+  <div id="status">📷 En attente de scan...</div>
+
+  <script>
+    // 👉 Mets ici ton URL WebApp Google Script (celle en /exec)
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycby9km3nMVfCsIbqWWXWqVXCJagtPRol-1V5xvNLxaclo0fQbRqGMwv2sipx_M7HokowTA/exec";
+
+    function sendToSheet(data) {
+      fetch(WEBAPP_URL, {
+        method: "POST",
+        body: JSON.stringify({ qrData: data }),
+        headers: { "Content-Type": "application/json" }
+      }).then(res => res.json())
+      .then(r => {
+        document.getElementById("status").textContent =
+          "✅ Envoyé à Google Sheet : " + r.data;
+      })
+      .catch(err => {
+        document.getElementById("status").textContent = "❌ Erreur envoi : " + err;
+      });
+    }
+
+    function onScanSuccess(decodedText) {
+      document.getElementById("status").textContent = "QR détecté : " + decodedText;
+      sendToSheet(decodedText);
+    }
+
+    // 👉 Détection des caméras et choix automatique de la caméra arrière
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        let cameraId = devices[0].id;
+        let backCam = devices.find(d => d.label.toLowerCase().includes("back"));
+        if (backCam) cameraId = backCam.id;
+
+        new Html5Qrcode("reader").start(
+          cameraId,
+          { fps: 10, qrbox: 250 },
+          onScanSuccess
+        );
+      }
+    }).catch(err => {
+      document.getElementById("status").textContent = "⚠️ Erreur accès caméra : " + err;
+    });
+  </script>
+</body>
+</html>
