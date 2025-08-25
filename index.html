@@ -24,7 +24,8 @@
         method: "POST",
         body: JSON.stringify({ qrData: data }),
         headers: { "Content-Type": "application/json" }
-      }).then(res => res.json())
+      })
+      .then(res => res.json())
       .then(r => {
         document.getElementById("status").textContent =
           "✅ Envoyé à Google Sheet : " + r.data;
@@ -58,4 +59,5 @@
   </script>
 </body>
 </html>
+
 
