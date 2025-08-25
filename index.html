@@ -20,11 +20,11 @@
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw_aDL_I1oiueFAt9MK6NZWyGZ6NISi2ZkcoUkf8fizuHMK5VZwfyhAFQUw45KcMFYw7g/exec";
 
     function sendToSheet(data) {
-      fetch(WEBAPP_URL, {
-        method: "POST",
-        body: JSON.stringify({ qrData: data }),
-        headers: { "Content-Type": "application/json" }
-      })
+    fetch(WEBAPP_URL, {
+      method: "POST",
+      body: JSON.stringify({ qrData: data }),
+      headers: { "Content-Type": "application/json" }
+    })
       .then(res => res.json())
       .then(r => {
         document.getElementById("status").textContent =
@@ -59,6 +59,7 @@
   </script>
 </body>
 </html>
+
 
 
 
