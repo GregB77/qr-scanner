@@ -16,31 +16,29 @@
   <div id="status">📷 En attente de scan...</div>
 
   <script>
-    // 👉 Mets ici ton URL WebApp Google Script (celle en /exec)
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzCaMvkG90Wxf267kjO4Pi10i-VBY1zbAlONGu7iSDbBCMah9naG-PpuHZoHvb5SVlomA/exec";
+    // Mets ici ton URL WebApp Google Script (celle en /exec)
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwrdIwr7ENyDoXBaBBJN2fVYFVbTM5klEfZJkauLtKUwnPCS82W00nTkdmq8_3hBSzFjQ/exec";
 
     function sendToSheet(data) {
-    fetch(WEBAPP_URL, {
-      method: "POST",
-      body: JSON.stringify({ qrData: data }),
-      headers: { "Content-Type": "application/json" }
-    })
+      fetch(WEBAPP_URL, {
+        method: "POST",
+        body: JSON.stringify({ qrData: data }),
+        headers: { "Content-Type": "application/json" }
+      })
       .then(res => res.json())
       .then(r => {
-        document.getElementById("status").textContent =
-          "✅ Envoyé à Google Sheet : " + r.data;
+        if (r.status === "success") {
+          document.getElementById("status").textContent = "✅ Envoyé : " + r.data;
+        } else {
+          document.getElementById("status").textContent = "❌ Erreur : " + r.message;
+        }
       })
       .catch(err => {
-        document.getElementById("status").textContent = "❌ Erreur envoi : " + err;
+        document.getElementById("status").textContent = "❌ Fetch failed : " + err;
       });
     }
 
-    function onScanSuccess(decodedText) {
-      document.getElementById("status").textContent = "QR détecté : " + decodedText;
-      sendToSheet(decodedText);
-    }
-
-    // 👉 Détection des caméras et choix automatique de la caméra arrière
+    // Scanner QR et choix caméra arrière
     Html5Qrcode.getCameras().then(devices => {
       if (devices && devices.length) {
         let cameraId = devices[0].id;
@@ -50,8 +48,13 @@
         new Html5Qrcode("reader").start(
           cameraId,
           { fps: 10, qrbox: 250 },
-          onScanSuccess
+          decodedText => {
+            document.getElementById("status").textContent = "QR détecté : " + decodedText;
+            sendToSheet(decodedText);
+          }
         );
+      } else {
+        document.getElementById("status").textContent = "⚠️ Aucune caméra trouvée";
       }
     }).catch(err => {
       document.getElementById("status").textContent = "⚠️ Erreur accès caméra : " + err;
@@ -59,8 +62,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
