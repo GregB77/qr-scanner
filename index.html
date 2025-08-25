@@ -1,65 +1,65 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Scanner QR vers Google Sheet</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-    #reader { width: 320px; margin: auto; }
-    #status { margin-top: 15px; font-weight: bold; color: green; }
-  </style>
+    <title>Scanner QR - Fichier Indépendant</title>
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <style>
+        #preview { width: 100%; max-width: 600px; }
+        body { text-align: center; font-family: sans-serif; }
+    </style>
 </head>
 <body>
-  <h2>Scanner un QR Code</h2>
-  <div id="reader"></div>
-  <div id="status">📷 En attente de scan...</div>
+    <h1>Scanner de QR Code</h1>
+    <video id="preview"></video>
+    <p>Données scannées : <span id="data"></span></p>
 
-  <script>
-    // Mets ici ton URL WebApp Google Script (celle en /exec)
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbx9fJ9sHIPpme5ykGkaJ3yzvNOXKyJ0JaXPhTwnDCd_FrZydL2S3aqmRFww1InyqtqYmw/exec";
+    <script>
+        // REMPLACEZ CETTE URL PAR CELLE DE VOTRE APPLICATION WEB GOOGLE APPS SCRIPT
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_o6iawqSqnl1-4omk3PU0QvdmzYwwrK9lWLoP_h3UMtvkcV0ncSimut5y5GYAl6SbbA/exec';
 
-    function sendToSheet(data) {
-      fetch(WEBAPP_URL, {
-        method: "POST",
-        body: JSON.stringify({ qrData: data }),
-        headers: { "Content-Type": "application/json" }
-      })
-      .then(res => res.json())
-      .then(r => {
-        if (r.status === "success") {
-          document.getElementById("status").textContent = "✅ Envoyé : " + r.data;
-        } else {
-          document.getElementById("status").textContent = "❌ Erreur : " + r.message;
+        let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+        scanner.addListener('scan', function (content) {
+            document.getElementById('data').textContent = content;
+            sendDataToGoogleSheet(content);
+        });
+
+        Instascan.Camera.getCameras().then(function (cameras) {
+            if (cameras.length > 0) {
+                // Détecte la caméra arrière par défaut si elle existe
+                let backCamera = cameras.find(camera => camera.name.toLowerCase().includes('back') || camera.name.toLowerCase().includes('arrière') || camera.name.toLowerCase().includes('environment'));
+                if (backCamera) {
+                    scanner.start(backCamera);
+                } else {
+                    scanner.start(cameras[0]);
+                    console.warn('Caméra arrière non trouvée, utilisation de la caméra par défaut.');
+                }
+            } else {
+                console.error('Aucune caméra trouvée.');
+            }
+        }).catch(function (e) {
+            console.error(e);
+        });
+
+        function sendDataToGoogleSheet(qrData) {
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ qrData: qrData }),
+                headers: {
+                    'Content-Type': 'text/plain' // Type de contenu est 'text/plain' pour Apps Script
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Données envoyées avec succès à Google Sheets.');
+                } else {
+                    console.error('Erreur lors de l’envoi des données.');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur de connexion :', error);
+            });
         }
-      })
-      .catch(err => {
-        document.getElementById("status").textContent = "❌ Fetch failed : " + err;
-      });
-    }
-
-    // Scanner QR et choix caméra arrière
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        let cameraId = devices[0].id;
-        let backCam = devices.find(d => d.label.toLowerCase().includes("back"));
-        if (backCam) cameraId = backCam.id;
-
-        new Html5Qrcode("reader").start(
-          cameraId,
-          { fps: 10, qrbox: 250 },
-          decodedText => {
-            document.getElementById("status").textContent = "QR détecté : " + decodedText;
-            sendToSheet(decodedText);
-          }
-        );
-      } else {
-        document.getElementById("status").textContent = "⚠️ Aucune caméra trouvée";
-      }
-    }).catch(err => {
-      document.getElementById("status").textContent = "⚠️ Erreur accès caméra : " + err;
-    });
-  </script>
+    </script>
 </body>
 </html>
-
