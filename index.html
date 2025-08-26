@@ -1,78 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CALOR RUN - Scanner Dossards</title>
-    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
-    <style>
-        #preview { width: 100%; max-width: 600px; }
-        body { text-align: center; font-family: sans-serif; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Scanner QR Code</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; }
+    #reader { width: 80vw; margin: 20px auto; } /* agrandi */
+    /*#indicator {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: transparent;
+      margin: 12px auto;
+      transition: background 0.2s ease-out;
+    }*/
+    #result {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 10em; /* Taille de police plus grande */
+      font-weight: bold;
+      color: #28a745; /* Couleur verte */
+      display: block; /* S'assure qu'il est visible */
+}
+  
+  </style>
 </head>
 <body>
-    <h1>CALOR RUN</h1>
-    <video id="preview"></video>
-    <p>N° : <span id="data"></span></p>
+  <h2>Scanner un QR Code</h2>
+  <div id="reader"></div>
+  <div id="indicator"></div>
+  <div id="result">---</div>
 
-    <script>
-        // REMPLACEZ CETTE URL PAR CELLE DE VOTRE APPLICATION WEB GOOGLE APPS SCRIPT
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7r1FF78DH4KOcaNY9UNOZSnNX-jpuT7yzRWSMMyQE46E30l5pjBJqnTrPSPnUvRn9lA/exec';
+  <script>
+    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_hRE5O8J3KawYfSvUs14vWd9gKdjb0j1WDdREOtzcQWPD55ZzpFcPB33dr3PpSCF-/exec";
+    const html5QrCode = new Html5Qrcode("reader");
 
-        let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
-        scanner.addListener('scan', function (content) {
-            document.getElementById('data').textContent = content;
-            sendDataToGoogleSheet(content);
-        });
+    function onScanSuccess(decodedText) {
+      const code = String(decodedText || "").trim();
+      if (!code) return;
+      document.getElementById("result").innerText = code;
 
-        Instascan.Camera.getCameras().then(function (cameras) {
-            if (cameras.length > 0) {
-                // Détecte la caméra arrière par défaut si elle existe
-                let backCamera = cameras.find(camera => camera.name.toLowerCase().includes('back') || camera.name.toLowerCase().includes('arrière') || camera.name.toLowerCase().includes('environment'));
-                if (backCamera) {
-                    scanner.start(backCamera);
-                } else {
-                    scanner.start(cameras[0]);
-                    console.warn('Caméra arrière non trouvée, utilisation de la caméra par défaut.');
-                }
-            } else {
-                console.error('Aucune caméra trouvée.');
-            }
-        }).catch(function (e) {
-            console.error(e);
-        });
+      // Envoi au Google Apps Script
+      fetch(APP_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({ code }),
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(r => r.text())
+      .then(txt => console.log("Réponse serveur:", txt))
+      .catch(err => console.error("Erreur envoi:", err));
+    }
 
-        function sendDataToGoogleSheet(qrData) {
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ qrData: qrData }),
-                headers: {
-                    'Content-Type': 'text/plain' // Type de contenu est 'text/plain' pour Apps Script
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    console.log('Données envoyées avec succès à Google Sheets.');
-                } else {
-                    console.error('Erreur lors de l’envoi des données.');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur de connexion :', error);
-            });
-        }
-    </script>
+    function onScanFailure(error) {
+    }
+
+    Html5Qrcode.getCameras().then(cameras => {
+      if (cameras && cameras.length) {
+        const rearCamera = cameras.find(c => c.label.toLowerCase().includes("back")) || cameras[0];
+        html5QrCode.start(
+          rearCamera.id,
+          { fps: 10, qrbox: { width: 400, height: 400 }, facingMode: "environment" },
+          onScanSuccess,
+          onScanFailure
+        );
+      }
+    });
+  </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
