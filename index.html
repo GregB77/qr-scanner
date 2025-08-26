@@ -7,13 +7,6 @@
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; }
     #reader { width: 80vw; margin: 20px auto; } /* agrandi */
-    /*#indicator {
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      background: transparent;
-      margin: 12px auto;
-      transition: background 0.2s ease-out;
-    }*/
     #result {
       text-align: center;
       margin-top: 20px;
@@ -26,7 +19,7 @@
   </style>
 </head>
 <body>
-  <h2>Scanner un QR Code</h2>
+  <h2>Scanner un Dossard</h2>
   <div id="reader"></div>
   <div id="indicator"></div>
   <div id="result">---</div>
@@ -34,21 +27,21 @@
   <script>
     const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdX-DwkifQ22mdtwNue9kjKdk-Cf51q1xbZPbw8tX3Ht6qb1Ou0JGtTysxKci4to2TZw/exec";
     const html5QrCode = new Html5Qrcode("reader");
-
+    
     function onScanSuccess(decodedText) {
       const code = String(decodedText || "").trim();
       if (!code) return;
-      document.getElementById("result").innerText = code;
-
-      // Envoi au Google Apps Script
+      
       fetch(APP_SCRIPT_URL, {
         method: "POST",
-        body: JSON.stringify({ code }),
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
       })
       .then(r => r.text())
       .then(txt => console.log("Réponse serveur:", txt))
       .catch(err => console.error("Erreur envoi:", err));
+      
+      document.getElementById("result").innerText = code;
     }
 
     function onScanFailure(error) {
@@ -68,6 +61,7 @@
   </script>
 </body>
 </html>
+
 
 
 
