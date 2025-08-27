@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Données Google Sheet</title>
+  <title id="titre-dynamique"></title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -44,6 +44,10 @@
   <div id="table">Chargement...</div>
 
   <script>
+    const anneeActuelle = new Date().getFullYear();
+    const titreElement = document.getElementById('titre-dynamique');
+    titreElement.textContent = "LIVE TRAIL CALOR RUN ${anneeActuelle}";
+    
     const API_URL = "https://script.google.com/macros/s/AKfycbwvdGUaoXoGtCFLEpUL5_kU7S0vwwUBA27FbgSwUaW6fkGFo8TiKunllylfpgkjOhj4PA/exec";
 
     async function loadData() {
