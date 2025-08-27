@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Données Google Sheet</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4285f4;
+      color: white;
+      cursor: pointer;
+      margin-bottom: 15px;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Données depuis Google Sheet</h1>
+  <button onclick="loadData()">🔄 Rafraîchir maintenant</button>
+  <div id="table">Chargement...</div>
+
+  <script>
+    const API_URL = "TON_URL_WEBAPP_ICI";
+
+    async function loadData() {
+      try {
+        let res = await fetch(API_URL);
+        let data = await res.json();
+
+        let html = "<table>";
+        data.forEach((row, i) => {
+          html += "<tr>";
+          row.forEach(cell => {
+            html += i === 0 ? `<th>${cell}</th>` : `<td>${cell}</td>`;
+          });
+          html += "</tr>";
+        });
+        html += "</table>";
+
+        document.getElementById("table").innerHTML = html;
+      } catch (e) {
+        document.getElementById("table").innerHTML = "❌ Erreur de chargement";
+        console.error("Erreur fetch", e);
+      }
+    }
+
+    // charger au démarrage
+    loadData();
+
+    // auto-refresh toutes les minutes
+    setInterval(loadData, 60000);
+  </script>
+</body>
+</html>
