@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Participants CCalor Run</title>
+  <title>Participants Calor Run</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱️</text></svg>">
   <style>
     body {
@@ -49,28 +49,16 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       font-size: 0.9rem;
+      user-select: none;
     }
 
     tbody tr:nth-child(odd) { background-color: #ecf0f1; }
     tbody tr:nth-child(even) { background-color: #fff; }
     tbody tr:hover { background-color: #d1e7fd; transition: background-color 0.3s; }
 
-    .pagination {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    .pagination button {
-      padding: 5px 10px;
-      margin: 0 3px;
-      border: none;
-      background-color: #34495e;
-      color: #fff;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    .pagination button:disabled {
-      background-color: #7f8c8d;
-      cursor: default;
+    th .arrow {
+      margin-left: 5px;
+      font-size: 0.8em;
     }
   </style>
 </head>
@@ -80,19 +68,18 @@
   <table id="data-table">
     <thead>
       <tr>
-        <th data-column="Dossard">Dossard</th>
-        <th data-column="Nom">Nom</th>
-        <th data-column="Prenom">Prénom</th>
-        <th data-column="Club">Club</th>
-        <th data-column="Age">Age</th>
-        <th data-column="HF">HF</th>
-        <th data-column="CAT">CAT</th>
-        <th data-column="Course">Course</th>
+        <th data-column="Dossard">Dossard <span class="arrow"></span></th>
+        <th data-column="Nom">Nom <span class="arrow"></span></th>
+        <th data-column="Prenom">Prénom <span class="arrow"></span></th>
+        <th data-column="Club">Club <span class="arrow"></span></th>
+        <th data-column="Age">Age <span class="arrow"></span></th>
+        <th data-column="HF">HF <span class="arrow"></span></th>
+        <th data-column="CAT">CAT <span class="arrow"></span></th>
+        <th data-column="Course">Course <span class="arrow"></span></th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
-  <div class="pagination" id="pagination"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -123,20 +110,15 @@
 
     let data = [];
     let filteredData = [];
-    let currentPage = 1;
-    const rowsPerPage = 10;
+    let sortState = {}; // {column: 'Asc'/'Desc'}
 
     const tbody = document.querySelector("#data-table tbody");
-    const paginationDiv = document.getElementById("pagination");
     const searchInput = document.getElementById("search");
+    const headers = document.querySelectorAll("th");
 
     function renderTable() {
       tbody.innerHTML = "";
-      const start = (currentPage -1) * rowsPerPage;
-      const end = start + rowsPerPage;
-      const pageData = filteredData.slice(start, end);
-
-      pageData.forEach(row => {
+      filteredData.forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${row.Dossard}</td>
@@ -150,40 +132,46 @@
         `;
         tbody.appendChild(tr);
       });
-
-      renderPagination();
     }
 
-    function renderPagination() {
-      paginationDiv.innerHTML = "";
-      const pageCount = Math.ceil(filteredData.length / rowsPerPage);
-      for(let i=1; i<=pageCount; i++){
-        const btn = document.createElement("button");
-        btn.textContent = i;
-        btn.disabled = (i === currentPage);
-        btn.addEventListener("click", ()=> { currentPage=i; renderTable(); });
-        paginationDiv.appendChild(btn);
-      }
+    function clearArrows() {
+      headers.forEach(th => {
+        th.querySelector(".arrow").textContent = "";
+      });
     }
 
     function sortByColumn(column) {
+      let direction = sortState[column] === 'Asc' ? 'Desc' : 'Asc';
+      sortState[column] = direction;
+
       filteredData.sort((a,b) => {
-        if(a[column] < b[column]) return -1;
-        if(a[column] > b[column]) return 1;
+        let valA = a[column];
+        let valB = b[column];
+
+        if(column === "Age") {
+          valA = Number(valA);
+          valB = Number(valB);
+        }
+
+        if(valA < valB) return direction === 'Asc' ? -1 : 1;
+        if(valA > valB) return direction === 'Asc' ? 1 : -1;
         return 0;
       });
-      currentPage = 1;
+
+      clearArrows();
+      const th = document.querySelector(`th[data-column='${column}'] .arrow`);
+      th.textContent = direction === 'Asc' ? '▲' : '▼';
+
       renderTable();
     }
 
-    document.querySelectorAll("th").forEach(th => {
-      th.addEventListener("click", ()=> sortByColumn(th.dataset.column));
+    headers.forEach(th => {
+      th.addEventListener("click", () => sortByColumn(th.dataset.column));
     });
 
     searchInput.addEventListener("input", ()=>{
       const term = searchInput.value.toLowerCase();
       filteredData = data.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(term)));
-      currentPage = 1;
       renderTable();
     });
 
@@ -192,7 +180,6 @@
       if(val){
         data = Object.values(val);
         filteredData = [...data];
-        currentPage = 1;
         renderTable();
       }
     });
