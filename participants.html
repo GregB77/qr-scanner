@@ -1,21 +1,59 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <title>Tableau Firebase</title>
   <style>
+    /* Police générale */
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    /* Tableau */
     table {
       border-collapse: collapse;
       width: 100%;
-      margin-top: 20px;
+      max-width: 1000px;
+      margin: 20px auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background-color: #fff;
+      border-radius: 8px;
+      overflow: hidden;
     }
+
     th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
+      padding: 12px 15px;
       text-align: left;
     }
+
     th {
-      background-color: #f4f4f4;
+      background-color: #34495e;
+      color: #ecf0f1;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.9rem;
+    }
+
+    /* Zebra striping */
+    tbody tr:nth-child(odd) {
+      background-color: #ecf0f1;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #fff;
+    }
+
+    /* Hover effect */
+    tbody tr:hover {
+      background-color: #d1e7fd;
+      transition: background-color 0.3s;
     }
   </style>
 </head>
@@ -39,11 +77,9 @@
 
   <!-- Firebase App + Database -->
   <script type="module">
-    // Import Firebase (version modulaire)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
-    // 🔹 Remplace par ta configuration Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
       authDomain: "calor-run.firebaseapp.com",
@@ -55,27 +91,23 @@
       measurementId: "G-YVQPW6JGPK"
     };
 
-    // Init Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Référence à la racine ou à ton nœud spécifique
     const dbRef = ref(db, "participants");
-    
+
     function formatExcelDate(excelDate) {
-      // Excel : 1er janvier 1900 = 1
       const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
       const day = String(jsDate.getDate()).padStart(2, '0');
       const month = String(jsDate.getMonth() + 1).padStart(2, '0');
       const year = jsDate.getFullYear();
       return `${day}/${month}/${year}`;
     }
-    
-    // Lecture en temps réel
+
     onValue(dbRef, (snapshot) => {
       const data = snapshot.val();
       const tbody = document.querySelector("#data-table tbody");
-      tbody.innerHTML = ""; // reset
+      tbody.innerHTML = "";
 
       if (data) {
         Object.values(data).forEach(row => {
