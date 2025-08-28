@@ -39,6 +39,16 @@
 
   <!-- Firebase App + Database -->
   <script type="module">
+
+    function formatExcelDate(excelDate) {
+      // Excel : 1er janvier 1900 = 1
+      const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
+      const day = String(jsDate.getDate()).padStart(2, '0');
+      const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+      const year = jsDate.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    
     // Import Firebase (version modulaire)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
@@ -76,7 +86,7 @@
             <td>${row.Nom}</td>
             <td>${row.Prenom}</td>
             <td>${row.Club}</td>
-            <td>${row.Age}</td>
+            <td>${formatExcelDate(row.Age)}</td>
             <td>${row.HF}</td>
             <td>${row.CAT}</td>
             <td>${row.Course}</td>
