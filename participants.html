@@ -11,81 +11,16 @@
       color: #333;
       padding: 20px;
     }
-    
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .counters {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      margin-bottom: 20px;
-      font-size: 1.2em;
-      font-weight: bold;
-    }
-    
-    h2 {
-      text-align: center;
-      color: #2c3e50;
-    }
-
-    #search {
-      display: block;
-      margin: 10px auto 20px auto;
-      padding: 8px 12px;
-      width: 50%;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto 20px auto;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      background-color: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    th, td {
-      padding: 12px 15px;
-      text-align: left;
-      cursor: pointer;
-    }
-
-    th {
-      background-color: #34495e;
-      color: #ecf0f1;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-size: 0.9rem;
-      user-select: none;
-    }
-
-    // tbody tr:nth-child(odd) { background-color: #ecf0f1; }
-    // tbody tr:nth-child(even) { background-color: #fff; }
-    // tbody tr:hover { background-color: #d1e7fd; transition: background-color 0.3s; }
-
-    th .arrow {
-      margin-left: 5px;
-      font-size: 0.8em;
-    }
-    tr:nth-child(even) {
-      background: #f2f2f2;
-    }
-    tr:hover {
-      background: #e9ffe9;
-    }
-    .arrow {
-      font-size: 12px;
-      margin-left: 5px;
-    }
-    .center {
-      text-align: center;
-    }
+    h2 { text-align: center; color: #2c3e50; }
+    .counters { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; font-size: 1.2em; font-weight: bold; }
+    #search { display: block; margin: 10px auto 20px auto; padding: 8px 12px; width: 50%; border-radius: 5px; border: 1px solid #ccc; }
+    table { border-collapse: collapse; width: 100%; max-width: 1000px; margin: 0 auto 20px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); background-color: #fff; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 12px 15px; text-align: left; cursor: pointer; }
+    th { background-color: #34495e; color: #ecf0f1; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.9rem; user-select: none; }
+    tr:nth-child(even) { background: #f2f2f2; }
+    tr:hover { background: #e9ffe9; }
+    .arrow { font-size: 12px; margin-left: 5px; }
+    .center { text-align: center; }
   </style>
 </head>
 <body>
@@ -105,7 +40,7 @@
         <th data-column="Nom">Nom <span class="arrow"></span></th>
         <th data-column="Prenom">Prénom <span class="arrow"></span></th>
         <th data-column="Club">Club <span class="arrow"></span></th>
-        <th data-column="HF" class="center"">H/F <span class="arrow"></span></th>
+        <th data-column="HF" class="center">H/F <span class="arrow"></span></th>
         <th data-column="CAT" class="center">CAT <span class="arrow"></span></th>
         <th data-column="Course" class="center">Course <span class="arrow"></span></th>
       </tr>
@@ -132,14 +67,6 @@
     const db = getDatabase(app);
     const dbRef = ref(db, "participants");
 
-    function formatExcelDate(excelDate) {
-      const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
-      const day = String(jsDate.getDate()).padStart(2,'0');
-      const month = String(jsDate.getMonth()+1).padStart(2,'0');
-      const year = jsDate.getFullYear();
-      return `${day}/${month}/${year}`;
-    }
-
     let data = [];
     let filteredData = [];
     let sortState = {}; // {column: 'Asc'/'Desc'}
@@ -164,23 +91,19 @@
         tbody.appendChild(tr);
       });
 
-      // 🔥 Mise à jour des compteurs
-      const count10 = filteredData.filter(r => r.Course == 10).length;
-      const count20 = filteredData.filter(r => r.Course == 20).length;
-      const total = filteredData.length;
-
-      document.getElementById("count10").textContent = `Course 10 km : ${count10}`;
-      document.getElementById("count20").textContent = `Course 20 km : ${count20}`;
-      document.getElementById("countTotal").textContent = `Total : ${total}`;
+      // Mise à jour des compteurs
+      document.getElementById("count10").textContent = `Course 10 km : ${filteredData.filter(r => r.Course == 10).length}`;
+      document.getElementById("count20").textContent = `Course 20 km : ${filteredData.filter(r => r.Course == 20).length}`;
+      document.getElementById("countTotal").textContent = `Total : ${filteredData.length}`;
     }
 
     function clearArrows() {
-      headers.forEach(th => {
-        th.querySelector(".arrow").textContent = "";
-      });
+      headers.forEach(th => { th.querySelector(".arrow").textContent = ""; });
     }
 
     function sortByColumn(column) {
+      if(column === "Age") return; // Ignore Age
+
       let direction = sortState[column] === 'Asc' ? 'Desc' : 'Asc';
       sortState[column] = direction;
 
@@ -188,7 +111,7 @@
         let valA = a[column];
         let valB = b[column];
 
-        if(column === "Age") {
+        if(!isNaN(valA) && !isNaN(valB)){
           valA = Number(valA);
           valB = Number(valB);
         }
@@ -200,7 +123,7 @@
 
       clearArrows();
       const th = document.querySelector(`th[data-column='${column}'] .arrow`);
-      th.textContent = direction === 'Asc' ? '▲' : '▼';
+      if(th) th.textContent = direction === 'Asc' ? '▲' : '▼';
 
       renderTable();
     }
@@ -211,17 +134,25 @@
 
     searchInput.addEventListener("input", () => {
       const term = searchInput.value.toLowerCase();
-      const searchableColumns = ["Dossard", "Nom", "Prenom", "Club", "HF", "CAT", "Course"]; // colonnes à rechercher
+      const searchableColumns = ["Dossard","Nom","Prenom","Club","HF","CAT","Course"]; // ignore Age
 
-      filteredData = data.filter(row => 
-        searchableColumns.some(col => 
-          String(row[col]).toLowerCase().includes(term)
-        )
+      filteredData = data.filter(row =>
+        searchableColumns.some(col => String(row[col]).toLowerCase().includes(term))
       );
+
       renderTable();
     });
 
-    onValue(dbRef, (snapshot)=>{
+    onValue(dbRef, (snapshot) => {
+      const val = snapshot.val();
+      if(val){
+        data = Object.values(val);
+        filteredData = [...data];
+        renderTable();
+      }
+    });
+
+    onValue(dbRef, (snapshot) => {
       const val = snapshot.val();
       if(val){
         data = Object.values(val);
