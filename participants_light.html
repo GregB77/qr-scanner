@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Participants Calor Run</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱️</text></svg>">
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    #search {
+      display: block;
+      margin: 10px auto 20px auto;
+      padding: 8px 12px;
+      width: 50%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background-color: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    th {
+      background-color: #34495e;
+      color: #ecf0f1;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.9rem;
+      user-select: none;
+    }
+
+    tbody tr:nth-child(odd) { background-color: #ecf0f1; }
+    tbody tr:nth-child(even) { background-color: #fff; }
+    tbody tr:hover { background-color: #d1e7fd; transition: background-color 0.3s; }
+
+    th .arrow {
+      margin-left: 5px;
+      font-size: 0.8em;
+    }
+  </style>
+</head>
+<body>
+  <h2>Participants Calor Run</h2>
+  <input type="text" id="search" placeholder="Rechercher...">
+  <table id="data-table">
+    <thead>
+      <tr>
+        <th data-column="Dossard">Dossard <span class="arrow"></span></th>
+        <th data-column="Nom">Nom <span class="arrow"></span></th>
+        <th data-column="Prenom">Prénom <span class="arrow"></span></th>
+        <th data-column="Club">Club <span class="arrow"></span></th>
+        <th data-column="Age">Age <span class="arrow"></span></th>
+        <th data-column="HF">HF <span class="arrow"></span></th>
+        <th data-column="CAT">CAT <span class="arrow"></span></th>
+        <th data-column="Course">Course <span class="arrow"></span></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+      authDomain: "calor-run.firebaseapp.com",
+      databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "calor-run",
+      storageBucket: "calor-run.firebasestorage.app",
+      messagingSenderId: "329949291334",
+      appId: "1:329949291334:web:c71ef20268c609cf953b47",
+      measurementId: "G-YVQPW6JGPK"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const dbRef = ref(db, "participants");
+
+    function formatExcelDate(excelDate) {
+      const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
+      const day = String(jsDate.getDate()).padStart(2,'0');
+      const month = String(jsDate.getMonth()+1).padStart(2,'0');
+      const year = jsDate.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    let data = [];
+    let filteredData = [];
+    let sortState = {}; // {column: 'Asc'/'Desc'}
+
+    const tbody = document.querySelector("#data-table tbody");
+    const searchInput = document.getElementById("search");
+    const headers = document.querySelectorAll("th");
+
+    function renderTable() {
+      tbody.innerHTML = "";
+      filteredData.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.Dossard}</td>
+          <td>${row.Nom}</td>
+          <td>${row.Prenom}</td>
+          <td>${row.Club}</td>
+          <td>${row.HF}</td>
+          <td>${row.CAT}</td>
+          <td>${row.Course}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function clearArrows() {
+      headers.forEach(th => {
+        th.querySelector(".arrow").textContent = "";
+      });
+    }
+
+    function sortByColumn(column) {
+      let direction = sortState[column] === 'Asc' ? 'Desc' : 'Asc';
+      sortState[column] = direction;
+
+      filteredData.sort((a,b) => {
+        let valA = a[column];
+        let valB = b[column];
+
+        if(column === "Age") {
+          valA = Number(valA);
+          valB = Number(valB);
+        }
+
+        if(valA < valB) return direction === 'Asc' ? -1 : 1;
+        if(valA > valB) return direction === 'Asc' ? 1 : -1;
+        return 0;
+      });
+
+      clearArrows();
+      const th = document.querySelector(`th[data-column='${column}'] .arrow`);
+      th.textContent = direction === 'Asc' ? '▲' : '▼';
+
+      renderTable();
+    }
+
+    headers.forEach(th => {
+      th.addEventListener("click", () => sortByColumn(th.dataset.column));
+    });
+
+    searchInput.addEventListener("input", ()=>{
+      const term = searchInput.value.toLowerCase();
+      filteredData = data.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(term)));
+      renderTable();
+    });
+
+    onValue(dbRef, (snapshot)=>{
+      const val = snapshot.val();
+      if(val){
+        data = Object.values(val);
+        filteredData = [...data];
+        renderTable();
+      }
+    });
+  </script>
+</body>
+</html>
