@@ -11,7 +11,20 @@
       color: #333;
       padding: 20px;
     }
-
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .counters {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+    
     h2 {
       text-align: center;
       color: #2c3e50;
@@ -64,6 +77,13 @@
 </head>
 <body>
   <h2>Participants Calor Run</h2>
+
+  <div class="counters">
+    <div id="count10">Course 10 km : 0</div>
+    <div id="count20">Course 20 km : 0</div>
+    <div id="countTotal">Total : 0</div>
+  </div>
+
   <input type="text" id="search" placeholder="Rechercher...">
   <table id="data-table">
     <thead>
@@ -132,6 +152,15 @@
         `;
         tbody.appendChild(tr);
       });
+
+      // 🔥 Mise à jour des compteurs
+      const count10 = filteredData.filter(r => r.Course == 10).length;
+      const count20 = filteredData.filter(r => r.Course == 20).length;
+      const total = filteredData.length;
+
+      document.getElementById("count10").textContent = `Course 10 km : ${count10}`;
+      document.getElementById("count20").textContent = `Course 20 km : ${count20}`;
+      document.getElementById("countTotal").textContent = `Total : ${total}`;
     }
 
     function clearArrows() {
