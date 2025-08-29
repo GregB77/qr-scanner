@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+/*<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
@@ -62,6 +62,106 @@
   </script>
 </body>
 </html>
+*/
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Scanner QR Codes Mobile</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #reader { width: 100%; max-width: 500px; margin-bottom: 20px; }
+    #results { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+    .scan-entry { margin-bottom: 5px; padding: 5px; border-bottom: 1px solid #eee; transition: background 0.5s; }
+    .new-scan { background: yellow; }
+  </style>
+</head>
+<body>
+  <h1>Scanner QR Codes (Mobile)</h1>
+  <div id="reader"></div>
+  <h2>Scans en live</h2>
+  <div id="results"></div>
+
+  <audio id="beep-sound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+
+  <script>
+    // --- Configuration Firebase ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+      authDomain: "calor-run.firebaseapp.com",
+      databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "calor-run",
+      storageBucket: "calor-run.firebasestorage.app",
+      messagingSenderId: "329949291334",
+      appId: "1:329949291334:web:c71ef20268c609cf953b47",
+      measurementId: "G-YVQPW6JGPK"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // --- Stockage local des QR codes déjà scannés ---
+    const scannedCodes = new Set();
+
+    // --- Charger les QR codes existants depuis Firebase ---
+    database.ref('scans').once('value', snapshot => {
+      snapshot.forEach(childSnapshot => {
+        const code = childSnapshot.val().code;
+        scannedCodes.add(code);
+        addScanToPage(code, childSnapshot.val().dateTime, false);
+      });
+    });
+
+    // --- Envoyer un scan à Firebase ---
+    function sendToFirebase(qrCodeValue) {
+      if (scannedCodes.has(qrCodeValue)) return;
+      scannedCodes.add(qrCodeValue);
+
+      const timestamp = new Date().toISOString();
+      const newEntryRef = database.ref('scans').push();
+      newEntryRef.set({ code: qrCodeValue, dateTime: timestamp });
+      addScanToPage(qrCodeValue, timestamp, true);
+    }
+
+    // --- Afficher le scan sur la page ---
+    function addScanToPage(qrCodeValue, timestamp, notify) {
+      const resultsDiv = document.getElementById('results');
+      const entryDiv = document.createElement('div');
+      entryDiv.className = 'scan-entry';
+      entryDiv.textContent = `${timestamp} → ${qrCodeValue}`;
+      resultsDiv.prepend(entryDiv);
+
+      if (notify) {
+        entryDiv.classList.add('new-scan');
+        setTimeout(() => entryDiv.classList.remove('new-scan'), 500);
+        document.getElementById('beep-sound').play();
+      }
+    }
+
+    // --- Scanner QR ---
+    function onScanSuccess(decodedText) {
+      sendToFirebase(decodedText);
+    }
+
+    function onScanError(errorMessage) {
+      // Erreurs silencieuses
+    }
+
+    const html5QrcodeScanner = new Html5Qrcode("reader");
+    html5QrcodeScanner.start(
+      { facingMode: "environment" }, // caméra arrière
+      { fps: 10, qrbox: 250 },
+      onScanSuccess,
+      onScanError
+    );
+  </script>
+</body>
+</html>
+
 
 
 
