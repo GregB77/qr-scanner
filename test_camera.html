@@ -2,38 +2,23 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Test Scanner QR Mobile</title>
+  <title>Test QR Mobile</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
     #reader { width: 100%; max-width: 400px; margin: auto; }
   </style>
 </head>
 <body>
-  <h1>Test Scanner QR</h1>
-  <p>La caméra arrière doit s’ouvrir. Scanne un QR code pour tester.</p>
+  <h1>Test QR Mobile</h1>
   <div id="reader"></div>
-
   <script>
     function onScanSuccess(decodedText) {
       alert("QR scanné : " + decodedText);
     }
-
-    function onScanError(errorMessage) {
-      // Ignorer les erreurs silencieuses
-    }
-
+    function onScanError(err) {}
     const scanner = new Html5Qrcode("reader");
-
-    // Démarrer la caméra arrière
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      onScanSuccess,
-      onScanError
-    ).catch(err => {
-      alert("Erreur caméra : " + err);
-    });
+    scanner.start({facingMode:"environment"}, {fps:10, qrbox:250}, onScanSuccess, onScanError)
+           .catch(err => alert("Erreur caméra : " + err));
   </script>
 </body>
 </html>
