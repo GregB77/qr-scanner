@@ -1,102 +1,64 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
-        #reader {
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
-        }
-        #result {
-            font-size: 1.2em;
-            color: #333;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Scanner QR Code</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; }
+    #reader { width: 80vw; margin: 20px auto; } /* agrandi */
+    #result {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 10em; /* Taille de police plus grande */
+      font-weight: bold;
+      color: #28a745; /* Couleur verte */
+      display: block; /* S'assure qu'il est visible */
+}
+  
+  </style>
 </head>
 <body>
+  <h2>Scanner un Dossard</h2>
+  <div id="reader"></div>
+  <div id="indicator"></div>
+  <div id="result">---</div>
 
-    <h1>QR Code Scanner</h1>
-    <div id="reader"></div>
-    <div id="result">Scanning...</div>
+  <script>
+    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxC_F_8prAZH7gbTx2c9bpvir6viyOMwb4eRHpz_DjoypS8z7hXS-qVNwTk55AxeSrxmQ/exec";
+    const html5QrCode = new Html5Qrcode("reader");
+    
+    function onScanSuccess(decodedText) {
+      const code = String(decodedText || "").trim();
+      if (!code) return;
+      
+      fetch(APP_SCRIPT_URL, {
+        method: "POST",
+        mode: 'no-cors',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
+      })
+      .then(r => r.text())
+      .then(txt => console.log("Réponse serveur:", txt))
+      .catch(err => console.error("Erreur envoi:", err));
+      
+      document.getElementById("result").innerText = code;
+    }
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    function onScanFailure(error) {
+    }
 
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
-
-    <script>
-        // Votre configuration Firebase
-        const firebaseConfig = {
-          apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
-          authDomain: "calor-run.firebaseapp.com",
-          databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "calor-run",
-          storageBucket: "calor-run.firebasestorage.app",
-          messagingSenderId: "329949291334",
-          appId: "1:329949291334:web:c71ef20268c609cf953b47",
-        };
-
-        // Initialiser Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-
-        // Fonction pour envoyer les données à Firebase
-        async function sendToFirebase(qrCodeValue) {
-            try {
-                // Authentification anonyme
-                await auth.signInAnonymously();
-                console.log("Authenticated anonymously");
-
-                // Créer un objet avec les données
-                const data = {
-                    qrCode: parseInt(qrCodeValue, 10), // Convertir en entier
-                    timestamp: new Date()
-                };
-
-                // Ajouter les données à une collection dans Firestore
-                await db.collection("scannedCodes").add(data);
-                console.log("Document successfully written!");
-                document.getElementById('result').innerText = `QR Code scanné et envoyé : ${qrCodeValue}`;
-            } catch (error) {
-                console.error("Erreur lors de l'écriture sur Firestore : ", error);
-                document.getElementById('result').innerText = "Erreur lors de l'envoi des données.";
-            }
-        }
-
-        // Fonction pour gérer le scan réussi
-        function onScanSuccess(decodedText, decodedResult) {
-            // Empêcher les scans multiples
-            html5QrcodeScanner.pause();
-            
-            // Envoyer les données à Firebase
-            sendToFirebase(decodedText);
-        }
-
-        // Démarrer le scanner
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", 
-            { fps: 10, qrbox: 250 },
-            /* verbose= */ false);
-        
-        html5QrcodeScanner.render(onScanSuccess);
-
-    </script>
-
+    Html5Qrcode.getCameras().then(cameras => {
+      if (cameras && cameras.length) {
+        const rearCamera = cameras.find(c => c.label.toLowerCase().includes("back")) || cameras[0];
+        html5QrCode.start(
+          rearCamera.id,
+          { fps: 10, qrbox: { width: 400, height: 400 }, facingMode: "environment" },
+          onScanSuccess,
+          onScanFailure
+        );
+      }
+    });
+  </script>
 </body>
 </html>
