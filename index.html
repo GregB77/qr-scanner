@@ -5,20 +5,42 @@
   <title>Scanner QR Codes Mobile</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <!-- <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script> -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #reader { width: 100%; max-width: 500px; margin-bottom: 20px; }
-    #results { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
-    .scan-entry { margin-bottom: 5px; padding: 5px; border-bottom: 1px solid #eee; transition: background 0.5s; }
-    .new-scan { background: yellow; }
+    body { font-family: Arial, sans-serif; margin: 20px; text-align: center; background: #f9f9f9; }
+    h1 { margin-bottom: 10px; }
+    #reader { 
+      width: 100%; 
+      max-width: 400px; 
+      margin: 0 auto 20px auto; 
+      border: 3px solid #333; 
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    #results { 
+      max-height: 300px; 
+      overflow-y: auto; 
+      border: 2px solid #666; 
+      background: #fff; 
+      padding: 10px; 
+      border-radius: 8px; 
+      text-align: left; 
+    }
+    .scan-entry { 
+      margin-bottom: 8px; 
+      padding: 8px; 
+      border-bottom: 1px solid #eee; 
+      font-size: 1.1em; 
+      font-weight: bold; 
+    }
+    .scan-entry span.code { color: #0077cc; }
+    .new-scan { background: #fffa9e; transition: background 0.8s; }
   </style>
 </head>
 <body>
   <h1>Scanner QR Codes (Mobile)</h1>
   <div id="reader"></div>
-  <h2>Scans en live</h2>
+  <h2>📋 Scans en live</h2>
   <div id="results"></div>
 
   <audio id="beep-sound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
@@ -39,11 +61,10 @@
     const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // --- Stockage local des QR codes déjà scannés ---
     const scannedCodes = new Set();
 
     // --- Charger les QR codes existants depuis Firebase ---
-    database.ref('scans').once('value', snapshot => {
+    database.ref('scans_dossards').once('value', snapshot => {
       snapshot.forEach(childSnapshot => {
         const code = childSnapshot.val().code;
         scannedCodes.add(code);
@@ -56,10 +77,17 @@
       if (scannedCodes.has(qrCodeValue)) return;
       scannedCodes.add(qrCodeValue);
 
-      const timestamp = new Date().toISOString();
-      const newEntryRef = database.ref('scans').push();
-      newEntryRef.set({ code: qrCodeValue, dateTime: timestamp });
-      addScanToPage(qrCodeValue, timestamp, true);
+      const nowParis = new Date();
+      const timestampParis = new Intl.DateTimeFormat("fr-FR", {
+        timeZone: "Europe/Paris",
+        dateStyle: "short",
+        timeStyle: "medium"
+      }).format(nowParis);
+
+      const newEntryRef = database.ref('scans_dossards').push();
+      newEntryRef.set({ code: qrCodeValue, dateTime: timestampParis });
+
+      addScanToPage(qrCodeValue, timestampParis, true);
     }
 
     // --- Afficher le scan sur la page ---
@@ -67,12 +95,12 @@
       const resultsDiv = document.getElementById('results');
       const entryDiv = document.createElement('div');
       entryDiv.className = 'scan-entry';
-      entryDiv.textContent = `${timestamp} → ${qrCodeValue}`;
+      entryDiv.innerHTML = `<span>${timestamp}</span> → <span class="code">${qrCodeValue}</span>`;
       resultsDiv.prepend(entryDiv);
 
       if (notify) {
         entryDiv.classList.add('new-scan');
-        setTimeout(() => entryDiv.classList.remove('new-scan'), 500);
+        setTimeout(() => entryDiv.classList.remove('new-scan'), 800);
         document.getElementById('beep-sound').play();
       }
     }
@@ -83,12 +111,12 @@
     }
 
     function onScanError(errorMessage) {
-      // Erreurs silencieuses
+      // Ignorer les erreurs
     }
 
     const html5QrcodeScanner = new Html5Qrcode("reader");
     html5QrcodeScanner.start(
-      { facingMode: "environment" }, // caméra arrière
+      { facingMode: "environment" },
       { fps: 10, qrbox: 250 },
       onScanSuccess,
       onScanError
@@ -96,4 +124,3 @@
   </script>
 </body>
 </html>
-
