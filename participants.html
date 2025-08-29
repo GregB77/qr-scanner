@@ -7,58 +7,47 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      padding: 20px;
-      text-align: center;
+      margin: 20px;
     }
     h1 {
+      text-align: center;
       color: #333;
-      margin-bottom: 10px;
     }
     .counters {
-      margin: 15px 0 25px 0;
       display: flex;
       justify-content: center;
       gap: 30px;
-      font-size: 18px;
+      margin-bottom: 20px;
       font-weight: bold;
     }
-    .counter {
-      padding: 10px 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    .counter span {
+      color: #4CAF50;
     }
-    .c10 { background: #d4f8d4; color: #2e7d32; }
-    .c20 { background: #d4e3f8; color: #1e40af; }
-    .ctotal { background: #f0f0f0; color: #333; }
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 20px;
       background: white;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    thead {
-      background: #4CAF50;
-      color: white;
     }
     th, td {
       padding: 10px;
       border: 1px solid #ddd;
     }
     th {
+      background: #4CAF50;
+      color: white;
       cursor: pointer;
-      position: relative;
       user-select: none;
     }
-    tr:nth-child(even) {
-      background: #f2f2f2;
-    }
-    tr:hover {
-      background: #e9ffe9;
-    }
-    .arrow {
+    th .arrow {
       font-size: 12px;
       margin-left: 5px;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    tr:hover {
+      background: #f1f1f1;
     }
     .center {
       text-align: center;
@@ -70,9 +59,9 @@
 
   <!-- Compteurs -->
   <div class="counters">
-    <div class="counter c10">10 km : <span id="count10">0</span></div>
-    <div class="counter c20">20 km : <span id="count20">0</span></div>
-    <div class="counter ctotal">Total : <span id="countTotal">0</span></div>
+    <div class="counter">10 km : <span id="count10">0</span></div>
+    <div class="counter">20 km : <span id="count20">0</span></div>
+    <div class="counter">Total : <span id="countTotal">0</span></div>
   </div>
 
   <table id="dataTable">
@@ -153,7 +142,7 @@
       countTotal.textContent = total;
     });
 
-    // Tri simple asc/desc
+    // Tri asc/desc
     const headers = document.querySelectorAll("th");
     let sortOrder = {};
 
