@@ -2,20 +2,20 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Scanner QR Codes avec notifications</title>
+  <title>Scanner QR Codes Mobile</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
-    #reader { width: 500px; margin-bottom: 20px; }
+    #reader { width: 100%; max-width: 500px; margin-bottom: 20px; }
     #results { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
     .scan-entry { margin-bottom: 5px; padding: 5px; border-bottom: 1px solid #eee; transition: background 0.5s; }
     .new-scan { background: yellow; }
   </style>
 </head>
 <body>
-  <h1>Scanner QR Codes (notifications)</h1>
+  <h1>Scanner QR Codes (Mobile)</h1>
   <div id="reader"></div>
   <h2>Scans en live</h2>
   <div id="results"></div>
@@ -35,14 +35,13 @@
       measurementId: "G-YVQPW6JGPK"
     };
 
-    // Initialiser Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
     // --- Stockage local des QR codes déjà scannés ---
     const scannedCodes = new Set();
 
-    // --- Charger les QR codes existants depuis Firebase au démarrage ---
+    // --- Charger les QR codes existants depuis Firebase ---
     database.ref('scans').once('value', snapshot => {
       snapshot.forEach(childSnapshot => {
         const code = childSnapshot.val().code;
@@ -51,21 +50,18 @@
       });
     });
 
-    // --- Fonction pour envoyer les données à Firebase ---
+    // --- Envoyer un scan à Firebase ---
     function sendToFirebase(qrCodeValue) {
-      if (scannedCodes.has(qrCodeValue)) return; // éviter les doublons
+      if (scannedCodes.has(qrCodeValue)) return;
       scannedCodes.add(qrCodeValue);
 
       const timestamp = new Date().toISOString();
       const newEntryRef = database.ref('scans').push();
-      newEntryRef.set({
-        code: qrCodeValue,
-        dateTime: timestamp
-      });
+      newEntryRef.set({ code: qrCodeValue, dateTime: timestamp });
       addScanToPage(qrCodeValue, timestamp, true);
     }
 
-    // --- Affiche les scans sur la page avec notification ---
+    // --- Afficher le scan sur la page ---
     function addScanToPage(qrCodeValue, timestamp, notify) {
       const resultsDiv = document.getElementById('results');
       const entryDiv = document.createElement('div');
@@ -74,27 +70,24 @@
       resultsDiv.prepend(entryDiv);
 
       if (notify) {
-        // Notification visuelle
         entryDiv.classList.add('new-scan');
         setTimeout(() => entryDiv.classList.remove('new-scan'), 500);
-
-        // Bip sonore
         document.getElementById('beep-sound').play();
       }
     }
 
-    // --- Configuration du scanner QR ---
-    function onScanSuccess(decodedText, decodedResult) {
+    // --- Scanner QR ---
+    function onScanSuccess(decodedText) {
       sendToFirebase(decodedText);
     }
 
     function onScanError(errorMessage) {
-      // Ignorer les erreurs silencieuses
+      // Erreurs silencieuses
     }
 
     const html5QrcodeScanner = new Html5Qrcode("reader");
     html5QrcodeScanner.start(
-      { facingMode: "environment" },
+      { facingMode: "environment" }, // caméra arrière
       { fps: 10, qrbox: 250 },
       onScanSuccess,
       onScanError
