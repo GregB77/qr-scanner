@@ -1,24 +1,102 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Test QR Mobile</title>
-  <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
-  <style>
-    #reader { width: 100%; max-width: 400px; margin: auto; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+        #result {
+            font-size: 1.2em;
+            color: #333;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-  <h1>Test QR Mobile</h1>
-  <div id="reader"></div>
-  <script>
-    function onScanSuccess(decodedText) {
-      alert("QR scanné : " + decodedText);
-    }
-    function onScanError(err) {}
-    const scanner = new Html5Qrcode("reader");
-    scanner.start({facingMode:"environment"}, {fps:10, qrbox:250}, onScanSuccess, onScanError)
-           .catch(err => alert("Erreur caméra : " + err));
-  </script>
+
+    <h1>QR Code Scanner</h1>
+    <div id="reader"></div>
+    <div id="result">Scanning...</div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
+
+    <script>
+        // Votre configuration Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+          authDomain: "calor-run.firebaseapp.com",
+          databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "calor-run",
+          storageBucket: "calor-run.firebasestorage.app",
+          messagingSenderId: "329949291334",
+          appId: "1:329949291334:web:c71ef20268c609cf953b47",
+        };
+
+        // Initialiser Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Fonction pour envoyer les données à Firebase
+        async function sendToFirebase(qrCodeValue) {
+            try {
+                // Authentification anonyme
+                await auth.signInAnonymously();
+                console.log("Authenticated anonymously");
+
+                // Créer un objet avec les données
+                const data = {
+                    qrCode: parseInt(qrCodeValue, 10), // Convertir en entier
+                    timestamp: new Date()
+                };
+
+                // Ajouter les données à une collection dans Firestore
+                await db.collection("scannedCodes").add(data);
+                console.log("Document successfully written!");
+                document.getElementById('result').innerText = `QR Code scanné et envoyé : ${qrCodeValue}`;
+            } catch (error) {
+                console.error("Erreur lors de l'écriture sur Firestore : ", error);
+                document.getElementById('result').innerText = "Erreur lors de l'envoi des données.";
+            }
+        }
+
+        // Fonction pour gérer le scan réussi
+        function onScanSuccess(decodedText, decodedResult) {
+            // Empêcher les scans multiples
+            html5QrcodeScanner.pause();
+            
+            // Envoyer les données à Firebase
+            sendToFirebase(decodedText);
+        }
+
+        // Démarrer le scanner
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { fps: 10, qrbox: 250 },
+            /* verbose= */ false);
+        
+        html5QrcodeScanner.render(onScanSuccess);
+
+    </script>
+
 </body>
 </html>
