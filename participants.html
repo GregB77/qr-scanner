@@ -105,7 +105,7 @@
         <th data-column="Nom">Nom <span class="arrow"></span></th>
         <th data-column="Prenom">Prénom <span class="arrow"></span></th>
         <th data-column="Club">Club <span class="arrow"></span></th>
-        <th data-column="HF class="center"">H/F <span class="arrow"></span></th>
+        <th data-column="HF" class="center"">H/F <span class="arrow"></span></th>
         <th data-column="CAT" class="center">CAT <span class="arrow"></span></th>
         <th data-column="Course" class="center">Course <span class="arrow"></span></th>
       </tr>
@@ -153,13 +153,13 @@
       filteredData.forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${row.Dossard}</td>
+          <td class="center">${row.Dossard}</td>
           <td>${row.Nom}</td>
           <td>${row.Prenom}</td>
           <td>${row.Club}</td>
-          <td>${row.HF}</td>
-          <td>${row.CAT}</td>
-          <td>${row.Course}</td>
+          <td class="center">${row.HF}</td>
+          <td class="center">${row.CAT}</td>
+          <td class="center">${row.Course}</td>
         `;
         tbody.appendChild(tr);
       });
