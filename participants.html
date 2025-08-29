@@ -6,84 +6,85 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱️</text></svg>">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    h1 {
-      text-align: center;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
       color: #333;
+      padding: 20px;
     }
-    .counters {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      margin-bottom: 20px;
-      font-weight: bold;
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
     }
-    .counter span {
-      color: #4CAF50;
+
+    #search {
+      display: block;
+      margin: 10px auto 20px auto;
+      padding: 8px 12px;
+      width: 50%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
     }
+
     table {
-      width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
-      background: white;
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background-color: #fff;
+      border-radius: 8px;
+      overflow: hidden;
     }
+
     th, td {
-      padding: 10px;
-      border: 1px solid #ddd;
-    }
-    th {
-      background: #4CAF50;
-      color: white;
+      padding: 12px 15px;
+      text-align: left;
       cursor: pointer;
+    }
+
+    th {
+      background-color: #34495e;
+      color: #ecf0f1;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.9rem;
       user-select: none;
     }
+
+    tbody tr:nth-child(odd) { background-color: #ecf0f1; }
+    tbody tr:nth-child(even) { background-color: #fff; }
+    tbody tr:hover { background-color: #d1e7fd; transition: background-color 0.3s; }
+
     th .arrow {
-      font-size: 12px;
       margin-left: 5px;
-    }
-    tr:nth-child(even) {
-      background: #f9f9f9;
-    }
-    tr:hover {
-      background: #f1f1f1;
-    }
-    .center {
-      text-align: center;
+      font-size: 0.8em;
     }
   </style>
 </head>
 <body>
-  <h1>Participants Calor Run</h1>
-
-  <!-- Compteurs -->
-  <div class="counters">
-    <div class="counter">10 km : <span id="count10">0</span></div>
-    <div class="counter">20 km : <span id="count20">0</span></div>
-    <div class="counter">Total : <span id="countTotal">0</span></div>
-  </div>
-
-  <table id="dataTable">
+  <h2>Participants Calor Run</h2>
+  <input type="text" id="search" placeholder="Rechercher...">
+  <table id="data-table">
     <thead>
       <tr>
-        <th data-column="Dossard" class="center">Dossard <span class="arrow"></span></th>
+        <th data-column="Dossard">Dossard <span class="arrow"></span></th>
         <th data-column="Nom">Nom <span class="arrow"></span></th>
         <th data-column="Prenom">Prénom <span class="arrow"></span></th>
         <th data-column="Club">Club <span class="arrow"></span></th>
         <th data-column="Age">Age <span class="arrow"></span></th>
-        <th data-column="HF" class="center">H/F <span class="arrow"></span></th>
-        <th data-column="CAT" class="center">CAT <span class="arrow"></span></th>
-        <th data-column="Course" class="center">Course <span class="arrow"></span></th>
+        <th data-column="HF">H/F <span class="arrow"></span></th>
+        <th data-column="CAT">CAT <span class="arrow"></span></th>
+        <th data-column="Course">Course <span class="arrow"></span></th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
       authDomain: "calor-run.firebaseapp.com",
@@ -95,80 +96,92 @@
       measurementId: "G-YVQPW6JGPK"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const dbRef = ref(db, "participants");
 
     function formatExcelDate(excelDate) {
       const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
-      const day = String(jsDate.getDate()).padStart(2, '0');
-      const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+      const day = String(jsDate.getDate()).padStart(2,'0');
+      const month = String(jsDate.getMonth()+1).padStart(2,'0');
       const year = jsDate.getFullYear();
       return `${day}/${month}/${year}`;
     }
 
-    const tbody = document.querySelector("#dataTable tbody");
-    const count10 = document.getElementById("count10");
-    const count20 = document.getElementById("count20");
-    const countTotal = document.getElementById("countTotal");
+    let data = [];
+    let filteredData = [];
+    let sortState = {}; // {column: 'Asc'/'Desc'}
 
-    db.ref("participants").on("value", snapshot => {
-      const data = snapshot.val();
+    const tbody = document.querySelector("#data-table tbody");
+    const searchInput = document.getElementById("search");
+    const headers = document.querySelectorAll("th");
+
+    function renderTable() {
       tbody.innerHTML = "";
-
-      let total = 0, c10 = 0, c20 = 0;
-
-      Object.values(data).forEach(row => {
-        total++;
-        if (row.Course == "10") c10++;
-        if (row.Course == "20") c20++;
-
+      filteredData.forEach(row => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td class="center">${row.Dossard}</td>
+          <td>${row.Dossard}</td>
           <td>${row.Nom}</td>
           <td>${row.Prenom}</td>
           <td>${row.Club}</td>
           <td>${formatExcelDate(row.Age)}</td>
-          <td class="center">${row.HF}</td>
-          <td class="center">${row.CAT}</td>
-          <td class="center">${row.Course}</td>
+          <td>${row.HF}</td>
+          <td>${row.CAT}</td>
+          <td>${row.Course}</td>
         `;
         tbody.appendChild(tr);
       });
+    }
 
-      // maj compteurs
-      count10.textContent = c10;
-      count20.textContent = c20;
-      countTotal.textContent = total;
+    function clearArrows() {
+      headers.forEach(th => {
+        th.querySelector(".arrow").textContent = "";
+      });
+    }
+
+    function sortByColumn(column) {
+      let direction = sortState[column] === 'Asc' ? 'Desc' : 'Asc';
+      sortState[column] = direction;
+
+      filteredData.sort((a,b) => {
+        let valA = a[column];
+        let valB = b[column];
+
+        if(column === "Age") {
+          valA = Number(valA);
+          valB = Number(valB);
+        }
+
+        if(valA < valB) return direction === 'Asc' ? -1 : 1;
+        if(valA > valB) return direction === 'Asc' ? 1 : -1;
+        return 0;
+      });
+
+      clearArrows();
+      const th = document.querySelector(`th[data-column='${column}'] .arrow`);
+      th.textContent = direction === 'Asc' ? '▲' : '▼';
+
+      renderTable();
+    }
+
+    headers.forEach(th => {
+      th.addEventListener("click", () => sortByColumn(th.dataset.column));
     });
 
-    // Tri asc/desc
-    const headers = document.querySelectorAll("th");
-    let sortOrder = {};
+    searchInput.addEventListener("input", ()=>{
+      const term = searchInput.value.toLowerCase();
+      filteredData = data.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(term)));
+      renderTable();
+    });
 
-    headers.forEach(header => {
-      header.addEventListener("click", () => {
-        const column = header.dataset.column;
-        const rows = Array.from(tbody.querySelectorAll("tr"));
-        const isAsc = sortOrder[column] !== true;
-
-        rows.sort((a, b) => {
-          let valA = a.querySelector(`td:nth-child(${header.cellIndex + 1})`).innerText;
-          let valB = b.querySelector(`td:nth-child(${header.cellIndex + 1})`).innerText;
-
-          if (!isNaN(valA) && !isNaN(valB)) {
-            return isAsc ? valA - valB : valB - valA;
-          }
-          return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        });
-
-        tbody.innerHTML = "";
-        rows.forEach(row => tbody.appendChild(row));
-        sortOrder[column] = isAsc;
-
-        document.querySelectorAll(".arrow").forEach(a => a.innerText = "");
-        header.querySelector(".arrow").innerText = isAsc ? "▲" : "▼";
-      });
+    onValue(dbRef, (snapshot)=>{
+      const val = snapshot.val();
+      if(val){
+        data = Object.values(val);
+        filteredData = [...data];
+        renderTable();
+      }
     });
   </script>
 </body>
