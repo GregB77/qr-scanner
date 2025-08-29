@@ -209,9 +209,15 @@
       th.addEventListener("click", () => sortByColumn(th.dataset.column));
     });
 
-    searchInput.addEventListener("input", ()=>{
+    searchInput.addEventListener("input", () => {
       const term = searchInput.value.toLowerCase();
-      filteredData = data.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(term)));
+      const searchableColumns = ["Dossard", "Nom", "Prenom", "Club", "HF", "CAT", "Course"]; // colonnes à rechercher
+
+      filteredData = data.filter(row => 
+        searchableColumns.some(col => 
+          String(row[col]).toLowerCase().includes(term)
+        )
+      );
       renderTable();
     });
 
