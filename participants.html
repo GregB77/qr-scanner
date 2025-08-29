@@ -65,13 +65,27 @@
       user-select: none;
     }
 
-    tbody tr:nth-child(odd) { background-color: #ecf0f1; }
-    tbody tr:nth-child(even) { background-color: #fff; }
-    tbody tr:hover { background-color: #d1e7fd; transition: background-color 0.3s; }
+    // tbody tr:nth-child(odd) { background-color: #ecf0f1; }
+    // tbody tr:nth-child(even) { background-color: #fff; }
+    // tbody tr:hover { background-color: #d1e7fd; transition: background-color 0.3s; }
 
     th .arrow {
       margin-left: 5px;
       font-size: 0.8em;
+    }
+    
+    tr:nth-child(even) {
+      background: #f2f2f2;
+    }
+    tr:hover {
+      background: #e9ffe9;
+    }
+    .arrow {
+      font-size: 12px;
+      margin-left: 5px;
+    }
+    .center {
+      text-align: center;
     }
   </style>
 </head>
@@ -88,14 +102,13 @@
   <table id="data-table">
     <thead>
       <tr>
-        <th data-column="Dossard">Dossard <span class="arrow"></span></th>
+        <th data-column="Dossard" class="center">Dossard <span class="arrow"></span></th>
         <th data-column="Nom">Nom <span class="arrow"></span></th>
         <th data-column="Prenom">Prénom <span class="arrow"></span></th>
         <th data-column="Club">Club <span class="arrow"></span></th>
-        <th data-column="Age">Age <span class="arrow"></span></th>
-        <th data-column="HF">H/F <span class="arrow"></span></th>
-        <th data-column="CAT">CAT <span class="arrow"></span></th>
-        <th data-column="Course">Course <span class="arrow"></span></th>
+        <th data-column="HF class="center"">H/F <span class="arrow"></span></th>
+        <th data-column="CAT" class="center">CAT <span class="arrow"></span></th>
+        <th data-column="Course" class="center">Course <span class="arrow"></span></th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -146,7 +159,6 @@
           <td>${row.Prenom}</td>
           <td>${row.Club}</td>
           <td>${formatExcelDate(row.Age)}</td>
-          <td>${row.HF}</td>
           <td>${row.CAT}</td>
           <td>${row.Course}</td>
         `;
