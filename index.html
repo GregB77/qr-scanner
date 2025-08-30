@@ -18,7 +18,7 @@
       overflow: hidden;
     }
     #results { 
-      max-height: 300px; 
+      max-height: 400px; 
       overflow-y: auto; 
       border: 2px solid #666; 
       background: #fff; 
@@ -27,20 +27,21 @@
       text-align: left; 
     }
     .scan-entry { 
-      margin-bottom: 8px; 
-      padding: 8px; 
+      margin-bottom: 10px; 
+      padding: 10px; 
       border-bottom: 1px solid #eee; 
-      font-size: 1.1em; 
+      font-size: 1.2em; 
       font-weight: bold; 
     }
-    .scan-entry span.code { color: #0077cc; }
+    .scan-entry span.code { color: #0077cc; font-size: 1.4em; }
+    .scan-entry span.name { color: #444; font-size: 1.1em; display: block; }
     .new-scan { background: #fffa9e; transition: background 0.8s; }
   </style>
 </head>
 <body>
   <h1>Scanner QR Codes (Mobile)</h1>
   <div id="reader"></div>
-  <h2>📋 Scans en live</h2>
+  <h2>Scans en live</h2>
   <div id="results"></div>
 
   <audio id="beep-sound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
@@ -62,13 +63,34 @@
     const database = firebase.database();
 
     const scannedCodes = new Set();
+    let participantsCache = {};
 
-    // --- Charger les QR codes existants depuis Firebase ---
-    database.ref('scans_dossards').once('value', snapshot => {
+    // --- Charger participants depuis localStorage ---
+    const cached = localStorage.getItem("participantsCache");
+    if (cached) {
+      participantsCache = JSON.parse(cached);
+      console.log("Participants chargés depuis cache local :", participantsCache);
+    }
+
+    // --- Charger participants depuis Firebase (et mettre à jour cache) ---
+    database.ref('participants').once('value').then(snapshot => {
+      snapshot.forEach(child => {
+        const participant = child.val();
+        if (participant.Dossard) {
+          participantsCache[participant.Dossard] = participant;
+        }
+      });
+      // Sauvegarder dans localStorage
+      localStorage.setItem("participantsCache", JSON.stringify(participantsCache));
+      console.log("Participants mis à jour depuis Firebase :", participantsCache);
+    });
+
+    // --- Charger les anciens scans ---
+    database.ref('scans_dossards').once('value').then(snapshot => {
       snapshot.forEach(childSnapshot => {
-        const code = childSnapshot.val().code;
-        scannedCodes.add(code);
-        addScanToPage(code, childSnapshot.val().dateTime, false);
+        const data = childSnapshot.val();
+        scannedCodes.add(data.code);
+        addScanToPage(data, false);
       });
     });
 
@@ -84,18 +106,35 @@
         timeStyle: "medium"
       }).format(nowParis);
 
-      const newEntryRef = database.ref('scans_dossards').push();
-      newEntryRef.set({ code: qrCodeValue, dateTime: timestampParis });
+      const participantData = participantsCache[qrCodeValue] || null;
 
-      addScanToPage(qrCodeValue, timestampParis, true);
+      const entryData = {
+        code: qrCodeValue,
+        dateTime: timestampParis,
+        ...(participantData || {})
+      };
+
+      // Envoi vers Firebase
+      database.ref('scans_dossards').push().set(entryData);
+
+      // Affichage local
+      addScanToPage(entryData, true);
     }
 
     // --- Afficher le scan sur la page ---
-    function addScanToPage(qrCodeValue, timestamp, notify) {
+    function addScanToPage(data, notify) {
       const resultsDiv = document.getElementById('results');
       const entryDiv = document.createElement('div');
       entryDiv.className = 'scan-entry';
-      entryDiv.innerHTML = `<span>${timestamp}</span> → <span class="code">${qrCodeValue}</span>`;
+
+      let participantInfo = "";
+      if (data.nom) {
+        participantInfo = `<span class="name">${data.prenom} ${data.nom} (${data.cat}, ${data.hf}, ${data.course})</span>`;
+      } else {
+        participantInfo = `<span class="name" style="color:red;">⚠️ Participant non trouvé</span>`;
+      }
+
+      entryDiv.innerHTML = `<span>${data.dateTime}</span> → <span class="code">${data.code}</span>${participantInfo}`;
       resultsDiv.prepend(entryDiv);
 
       if (notify) {
