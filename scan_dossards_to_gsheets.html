@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <title>Scanner QR Code</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- On charge la lib depuis le fichier local -->
+  <script src="html5-qrcode.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; }
-    #reader { width: 80vw; margin: 20px auto; } /* agrandi */
+    #reader { width: 80vw; margin: 20px auto; }
     #result {
       text-align: center;
       margin-top: 20px;
-      font-size: 10em; /* Taille de police plus grande */
+      font-size: 10em;
       font-weight: bold;
-      color: #28a745; /* Couleur verte */
-      display: block; /* S'assure qu'il est visible */
-}
-  
+      color: #28a745;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -34,7 +34,6 @@
       
       fetch(APP_SCRIPT_URL, {
         method: "POST",
-        mode: 'no-cors',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code })
       })
@@ -46,6 +45,7 @@
     }
 
     function onScanFailure(error) {
+      // Tu peux logguer si besoin
     }
 
     Html5Qrcode.getCameras().then(cameras => {
