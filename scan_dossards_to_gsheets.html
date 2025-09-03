@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Scanner QR Code</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="html5-qrcode"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; }
     #reader { width: 80vw; margin: 20px auto; } /* agrandi */
@@ -25,7 +25,7 @@
   <div id="result">---</div>
 
   <script>
-    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwGVO2q6I3ZzcPXySCQvhni-oBxFM3QyXmsuUH45w3_sGHp3GHA6XY0rKNHuBIHRGX7eA/exec";
+    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmxYSuenbO29dqW6wqwDhCeFiTl45GvqYk_MNgcZS7EVkd5CCfUA_n-eRKzQIdwRr9zw/exec";
     const html5QrCode = new Html5Qrcode("reader");
     
     function onScanSuccess(decodedText) {
