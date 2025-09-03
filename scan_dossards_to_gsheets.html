@@ -3,52 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <title>Scanner QR Code</title>
-  <!-- On charge la lib depuis le fichier local -->
   <script src="html5-qrcode.min.js"></script>
-  <script>
-  console.log("Html5Qrcode dispo ?", typeof Html5Qrcode);
-  </script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; }
     #reader { width: 80vw; margin: 20px auto; }
     #result {
       text-align: center;
       margin-top: 20px;
-      font-size: 10em;
+      font-size: 5em;
       font-weight: bold;
-      color: #28a745;
-      display: block;
+      color: #333;
     }
+    #indicator {
+      margin-top: 20px;
+      font-size: 2em;
+      font-weight: bold;
+    }
+    .ok { color: green; }
+    .dup { color: orange; }
+    .err { color: red; }
   </style>
 </head>
 <body>
   <h2>Scanner un Dossard</h2>
   <div id="reader"></div>
-  <div id="indicator"></div>
   <div id="result">---</div>
+  <div id="indicator">En attente...</div>
 
   <script>
     const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyg-YQhjVdB-GUK0ouRWJZNAx0ktOl_HV-46hGrFWsxv04rKaP8NMhJ4Nr768iu-679FA/exec";
     const html5QrCode = new Html5Qrcode("reader");
     
+    function setIndicator(text, cssClass) {
+      const indicator = document.getElementById("indicator");
+      indicator.className = cssClass;
+      indicator.innerText = text;
+    }
+
     function onScanSuccess(decodedText) {
       const code = String(decodedText || "").trim();
       if (!code) return;
-      
+
+      document.getElementById("result").innerText = code;
+      setIndicator("Envoi...", "");
+
       fetch(APP_SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code })
       })
       .then(r => r.text())
-      .then(txt => console.log("Réponse serveur:", txt))
-      .catch(err => console.error("Erreur envoi:", err));
-      
-      document.getElementById("result").innerText = code;
+      .then(txt => {
+        console.log("Réponse serveur:", txt);
+        if (txt.includes("Saved")) {
+          setIndicator("✅ Enregistré", "ok");
+        } else if (txt.includes("Duplicate")) {
+          setIndicator("⚠️ Déjà scanné", "dup");
+        } else {
+          setIndicator("❌ Erreur: " + txt, "err");
+        }
+      })
+      .catch(err => {
+        console.error("Erreur envoi:", err);
+        setIndicator("❌ Erreur réseau", "err");
+      });
     }
 
     function onScanFailure(error) {
-      // Tu peux logguer si besoin
+      // silencieux pour éviter de spammer la console
     }
 
     Html5Qrcode.getCameras().then(cameras => {
