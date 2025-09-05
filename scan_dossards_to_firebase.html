@@ -26,13 +26,13 @@
       overflow: hidden;
     }
     #current-scan {
-      font-size: 6em;  /* très grosse police */
+      font-size: 6em;  /* police pour le scan en cours */
       font-weight: bold;
       color: #28a745; /* vert vif */
       margin: 20px 0;
     }
-    #counter {
-      font-size: 1.4em;
+    #counter { /* police pour le compteur */
+      font-size: 3em;
       font-weight: bold;
       margin: 10px 0;
       color: #0077cc;
@@ -43,9 +43,9 @@
       padding: 10px; 
       text-align: center; 
     }
-    .scan-entry { 
+    .scan-entry { /* police pour l’historique */
       margin-bottom: 6px; 
-      font-size: 1.5em; /* police plus grande pour l’historique */
+      font-size: 3em;
       font-weight: bold; 
       display: inline-block; 
       background: #f0f0f0; 
@@ -62,12 +62,12 @@
   <h1>Scanner Dossards</h1>
   <div id="reader"></div>
   <div id="current-scan">---</div>
-  <div id="counter">Scans uniques : 0</div>
-  <h2>📋 Historique</h2>
+  <div id="counter">Enregistrés : 0</div>
+  <h2>Historique</h2>
   <div id="results"></div>
 
   <!-- Bip sonore local -->
-  <audio id="beep-sound" src="bip.mp3" preload="auto"></audio>
+  <audio id="beep-sound" src="beep.mp3" preload="auto"></audio>
 
   <script>
     // --- Configuration Firebase ---
