@@ -17,6 +17,12 @@
       border-radius: 12px;
       overflow: hidden;
     }
+    #current-scan {
+      font-size: 6em;  /* très grosse police */
+      font-weight: bold;
+      color: #28a745; /* vert vif */
+      margin: 20px 0;
+    }
     #counter {
       font-size: 1.4em;
       font-weight: bold;
@@ -33,10 +39,10 @@
       text-align: left; 
     }
     .scan-entry { 
-      margin-bottom: 8px; 
-      padding: 8px; 
+      margin-bottom: 4px; 
+      padding: 4px; 
       border-bottom: 1px solid #eee; 
-      font-size: 1.1em; 
+      font-size: 0.9em; /* petite police */
       font-weight: bold; 
     }
     .new-scan { background: #fffa9e; transition: background 0.8s; }
@@ -45,11 +51,10 @@
 <body>
   <h1>Scanner Dossards</h1>
   <div id="reader"></div>
+  <div id="current-scan">---</div>
   <div id="counter">Scans uniques : 0</div>
-  <h2>📋 Scans en live</h2>
+  <h2>📋 Historique</h2>
   <div id="results"></div>
-
-  <audio id="beep-sound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
   <script>
     // --- Configuration Firebase ---
@@ -71,6 +76,17 @@
     let lastScan = "";
     let lastScanTime = 0;
 
+    // --- Fonction bip sonore ---
+    function playBeep() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
+      oscillator.connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.1);
+    }
+
     // --- Mise à jour compteur ---
     function updateCounter() {
       document.getElementById("counter").textContent =
@@ -81,9 +97,8 @@
     database.ref('scans_dossards').once('value', snapshot => {
       snapshot.forEach(childSnapshot => {
         const code = childSnapshot.key;
-        const dateTime = childSnapshot.val().dateTime;
         scannedCodes.add(code);
-        addScanToPage(dateTime, false);
+        addScanToHistory(code, false);
       });
       updateCounter();
     });
@@ -95,42 +110,40 @@
       lastScan = qrCodeValue;
       lastScanTime = now;
 
-      if (scannedCodes.has(qrCodeValue)) {
-        return; // doublon → on ignore
-      }
-
-      const nowParis = new Date();
-      const timestampParis = new Intl.DateTimeFormat("fr-FR", {
-        timeZone: "Europe/Paris",
-        dateStyle: "short",
-        timeStyle: "medium"
-      }).format(nowParis);
+      if (scannedCodes.has(qrCodeValue)) return; // doublon → ignore
 
       const entryRef = database.ref('scans_dossards/' + qrCodeValue);
 
       entryRef.once("value", snapshot => {
         if (!snapshot.exists()) {
-          entryRef.set({ dateTime: timestampParis }).then(() => {
+          entryRef.set({ dateTime: Date.now() }).then(() => { // on garde juste code
             scannedCodes.add(qrCodeValue);
-            addScanToPage(timestampParis, true);
+            showCurrentScan(qrCodeValue);
+            addScanToHistory(qrCodeValue, true);
             updateCounter();
           });
         }
       });
     }
 
-    // --- Afficher un scan ---
-    function addScanToPage(timestamp, notify) {
+    // --- Afficher scan en cours ---
+    function showCurrentScan(code) {
+      const currentDiv = document.getElementById('current-scan');
+      currentDiv.textContent = code;
+    }
+
+    // --- Ajouter au petit historique ---
+    function addScanToHistory(code, notify) {
       const resultsDiv = document.getElementById('results');
       const entryDiv = document.createElement('div');
       entryDiv.className = 'scan-entry';
-      entryDiv.textContent = timestamp;
+      entryDiv.textContent = code;
       resultsDiv.prepend(entryDiv);
 
       if (notify) {
         entryDiv.classList.add('new-scan');
         setTimeout(() => entryDiv.classList.remove('new-scan'), 800);
-        document.getElementById('beep-sound').play();
+        playBeep();
       }
     }
 
@@ -143,7 +156,7 @@
           rearCamera.id,
           { fps: 10, qrbox: { width: 300, height: 300 } },
           qrCodeMessage => sendToFirebase(qrCodeMessage),
-          errorMessage => {} // on ignore
+          errorMessage => {} // ignore erreurs
         );
       }
     });
