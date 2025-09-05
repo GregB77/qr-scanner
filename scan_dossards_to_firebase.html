@@ -17,6 +17,12 @@
       border-radius: 12px;
       overflow: hidden;
     }
+    #counter {
+      font-size: 1.4em;
+      font-weight: bold;
+      margin: 10px 0;
+      color: #0077cc;
+    }
     #results { 
       max-height: 300px; 
       overflow-y: auto; 
@@ -33,14 +39,13 @@
       font-size: 1.1em; 
       font-weight: bold; 
     }
-    .scan-entry span.code { color: #0077cc; }
     .new-scan { background: #fffa9e; transition: background 0.8s; }
-    .duplicate { color: red; font-style: italic; }
   </style>
 </head>
 <body>
   <h1>Scanner Dossards</h1>
   <div id="reader"></div>
+  <div id="counter">Scans uniques : 0</div>
   <h2>📋 Scans en live</h2>
   <div id="results"></div>
 
@@ -62,23 +67,36 @@
     const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Cache local pour éviter les doublons dans la session
     const scannedCodes = new Set();
+    let lastScan = "";
+    let lastScanTime = 0;
 
-    // --- Charger les codes existants depuis Firebase ---
+    // --- Mise à jour compteur ---
+    function updateCounter() {
+      document.getElementById("counter").textContent =
+        "Scans uniques : " + scannedCodes.size;
+    }
+
+    // --- Charger les scans existants ---
     database.ref('scans_dossards').once('value', snapshot => {
       snapshot.forEach(childSnapshot => {
-        const data = childSnapshot.val();
-        scannedCodes.add(data.code);
-        addScanToPage(data.code, data.dateTime, false);
+        const code = childSnapshot.key;
+        const dateTime = childSnapshot.val().dateTime;
+        scannedCodes.add(code);
+        addScanToPage(dateTime, false);
       });
+      updateCounter();
     });
 
-    // --- Envoyer un scan à Firebase avec anti-doublons ---
+    // --- Envoyer un scan à Firebase ---
     function sendToFirebase(qrCodeValue) {
+      const now = Date.now();
+      if (qrCodeValue === lastScan && (now - lastScanTime) < 3000) return; // anti-flood
+      lastScan = qrCodeValue;
+      lastScanTime = now;
+
       if (scannedCodes.has(qrCodeValue)) {
-        addScanToPage(qrCodeValue, "(déjà scanné)", false, true);
-        return;
+        return; // doublon → on ignore
       }
 
       const nowParis = new Date();
@@ -91,40 +109,32 @@
       const entryRef = database.ref('scans_dossards/' + qrCodeValue);
 
       entryRef.once("value", snapshot => {
-        if (snapshot.exists()) {
-          // Le code existe déjà en base => on ignore
-          scannedCodes.add(qrCodeValue);
-          addScanToPage(qrCodeValue, "(déjà scanné)", false, true);
-        } else {
-          // Nouveau code => on enregistre
-          entryRef.set({
-            code: qrCodeValue,
-            dateTime: timestampParis
-          }).then(() => {
+        if (!snapshot.exists()) {
+          entryRef.set({ dateTime: timestampParis }).then(() => {
             scannedCodes.add(qrCodeValue);
-            addScanToPage(qrCodeValue, timestampParis, true);
+            addScanToPage(timestampParis, true);
+            updateCounter();
           });
         }
       });
     }
 
-    // --- Afficher le scan sur la page ---
-    function addScanToPage(qrCodeValue, timestamp, notify, duplicate=false) {
+    // --- Afficher un scan ---
+    function addScanToPage(timestamp, notify) {
       const resultsDiv = document.getElementById('results');
       const entryDiv = document.createElement('div');
       entryDiv.className = 'scan-entry';
-      entryDiv.innerHTML = `<span>${timestamp}</span> → <span class="code">${qrCodeValue}</span>` +
-                           (duplicate ? " <span class='duplicate'>(déjà scanné)</span>" : "");
+      entryDiv.textContent = timestamp;
       resultsDiv.prepend(entryDiv);
 
-      if (notify && !duplicate) {
+      if (notify) {
         entryDiv.classList.add('new-scan');
         setTimeout(() => entryDiv.classList.remove('new-scan'), 800);
         document.getElementById('beep-sound').play();
       }
     }
 
-    // --- Démarrer le scanner ---
+    // --- Lancer le scanner ---
     const html5QrCode = new Html5Qrcode("reader");
     Html5Qrcode.getCameras().then(cameras => {
       if (cameras && cameras.length) {
@@ -132,11 +142,8 @@
         html5QrCode.start(
           rearCamera.id,
           { fps: 10, qrbox: { width: 300, height: 300 } },
-          (decodedText) => {
-            const code = String(decodedText || "").trim();
-            if (code) sendToFirebase(code);
-          },
-          (error) => { /* échec silencieux */ }
+          qrCodeMessage => sendToFirebase(qrCodeMessage),
+          errorMessage => {} // on ignore
         );
       }
     });
