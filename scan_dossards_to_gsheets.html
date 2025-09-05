@@ -1,81 +1,64 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Scanner QR Code</title>
+  <meta charset="UTF-8">
+  <title>Scanner QR Code Final</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      background: #fff;
-    }
-    #reader {
-      width: 80vw;
-      margin: 20px auto;
-    }
-    #result {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 10em;
-      font-weight: bold;
-      color: #28a745;
-      display: block;
-    }
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    #reader { width: 80vw; margin: 20px auto; }
+    #result { font-size: 4em; color: green; margin-top: 20px; }
   </style>
 </head>
 <body>
-  <h2>Scanner un Dossard</h2>
+  <h1>Scanner QR Code Final</h1>
   <div id="reader"></div>
   <div id="result">---</div>
 
   <script>
-    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrMQwcGLhLO21S3QqRXPVZWF0yS298H80DLPQ-IykCOr2VEBQqnsOhS3qvGIE-afwVxA/exec"; // <-- remplace ici !
+    // ===== 1. APPS SCRIPT PROXY =====
+    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz3irBBv6JOU0gjIqyOvWCKEfrueHDm6CPNaReKfD_ukDoqulAmC9lHxBxdWrXZqEbRYQ/exec";
 
+    // ===== 2. CONFIG FIREBASE =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+      authDomain: "calor-run.firebaseapp.com",
+      databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "calor-run",
+      storageBucket: "calor-run.firebasestorage.app",
+      messagingSenderId: "329949291334",
+      appId: "1:329949291334:web:c71ef20268c609cf953b47",
+      measurementId: "G-YVQPW6JGPK"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ===== 3. INITIALISATION SCANNER =====
     const html5QrCode = new Html5Qrcode("reader");
-
-    // Anti-doublons
-    let lastCode = null;
-    let lastScanTime = 0;
-
-    // File d’attente
     const queue = [];
     let sending = false;
 
     function onScanSuccess(decodedText) {
       const code = String(decodedText || "").trim();
-      if (!code) return;
-
-      const now = Date.now();
-      if (code === lastCode && (now - lastScanTime) < 1500) {
-        // Ignorer doublon dans les 1.5s
-        return;
-      }
-      lastCode = code;
-      lastScanTime = now;
-
-      sendCode(code);
+      console.log("Scan détecté:", code);
       document.getElementById("result").innerText = code;
-    }
 
-    function onScanFailure(error) {
-      // facultatif : console.log("Scan raté", error);
-    }
-
-    function sendCode(code) {
-      console.log("Tentative d'envoi du code :", code);
       queue.push(code);
       processQueue();
     }
 
+    function onScanFailure(error) {
+      // console.log("Scan raté:", error);
+    }
+
     function processQueue() {
       if (sending || queue.length === 0) return;
-      console.log("Envoi en cours du code :", code); // <-- ajouté
-
       sending = true;
       const code = queue.shift();
 
+      // ----- ENVOI APPS SCRIPT -----
       fetch(APP_SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,33 +66,42 @@
       })
       .then(r => r.json())
       .then(res => {
-        console.log("Réponse serveur:", res);
-        if (res.status !== "ok") {
-          console.error("Erreur serveur:", res.message);
-          queue.push(code); // Réessai
-        }
+        console.log("Réponse Apps Script:", res);
+        if (res.status === "duplicate") console.warn("Doublon détecté :", code);
+        if (res.status !== "ok" && res.status !== "duplicate") queue.push(code);
       })
       .catch(err => {
-        console.error("Erreur réseau:", err);
-        queue.push(code); // Réessai
-      })
-      .finally(() => {
-        sending = false;
-        if (queue.length > 0) processQueue();
+        console.error("Erreur Apps Script:", err);
+        queue.push(code);
       });
+
+      // ----- ENVOI FIREBASE -----
+      const timestamp = Date.now();
+      db.ref('scans/' + timestamp).set({ code })
+        .then(() => console.log("Envoyé Firebase:", code))
+        .catch(err => {
+          console.error("Erreur Firebase:", err);
+          queue.push(code);
+        })
+        .finally(() => {
+          sending = false;
+          if (queue.length > 0) processQueue();
+        });
     }
 
-    // Démarrer le scanner
+    // ===== 4. LANCEMENT CAMERA =====
     Html5Qrcode.getCameras().then(cameras => {
-      if (cameras && cameras.length) {
-        const rearCamera = cameras.find(c => c.label.toLowerCase().includes("back")) || cameras[0];
-        html5QrCode.start(
-          rearCamera.id,
-          { fps: 10, qrbox: { width: 400, height: 400 }, facingMode: "environment" },
-          onScanSuccess,
-          onScanFailure
-        );
+      if (!cameras || cameras.length === 0) {
+        console.error("Aucune caméra détectée !");
+        return;
       }
+      const rear = cameras.find(c => c.label.toLowerCase().includes("back")) || cameras[0];
+      html5QrCode.start(
+        rear.id,
+        { fps: 10, qrbox: { width: 300, height: 300 }, facingMode: "environment" },
+        onScanSuccess,
+        onScanFailure
+      );
     });
   </script>
 </body>
