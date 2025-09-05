@@ -7,8 +7,16 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; text-align: center; background: #f9f9f9; }
-    h1 { margin-bottom: 10px; }
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20px; 
+      text-align: center; 
+      background: #f9f9f9; 
+    }
+    h1, h2 { 
+      text-align: center; 
+      margin-bottom: 10px; 
+    }
     #reader { 
       width: 100%; 
       max-width: 400px; 
@@ -32,20 +40,22 @@
     #results { 
       max-height: 300px; 
       overflow-y: auto; 
-      border: 2px solid #666; 
-      background: #fff; 
       padding: 10px; 
-      border-radius: 8px; 
-      text-align: left; 
+      text-align: center; 
     }
     .scan-entry { 
-      margin-bottom: 4px; 
-      padding: 4px; 
-      border-bottom: 1px solid #eee; 
-      font-size: 0.9em; /* petite police */
+      margin-bottom: 6px; 
+      font-size: 1.5em; /* police plus grande pour l’historique */
       font-weight: bold; 
+      display: inline-block; 
+      background: #f0f0f0; 
+      padding: 6px 12px; 
+      border-radius: 8px;
     }
-    .new-scan { background: #fffa9e; transition: background 0.8s; }
+    .new-scan { 
+      background: #fffa9e; 
+      transition: background 0.8s; 
+    }
   </style>
 </head>
 <body>
@@ -124,7 +134,7 @@
     function showCurrentScan(code) {
       const currentDiv = document.getElementById('current-scan');
       currentDiv.textContent = code;
-      setTimeout(() => currentDiv.textContent = "---", 2000); // 2s avant de revenir à ---
+      setTimeout(() => currentDiv.textContent = "---", 2000); // 2s
     }
 
     // --- Ajouter au petit historique ---
