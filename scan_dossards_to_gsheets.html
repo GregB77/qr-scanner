@@ -64,6 +64,7 @@
     }
 
     function sendCode(code) {
+      console.log("Tentative d'envoi du code :", code);
       queue.push(code);
       processQueue();
     }
