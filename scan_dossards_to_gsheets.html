@@ -6,16 +6,15 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; }
-    #reader { width: 80vw; margin: 20px auto; } /* agrandi */
+    #reader { width: 80vw; margin: 20px auto; }
     #result {
       text-align: center;
       margin-top: 20px;
-      font-size: 10em; /* Taille de police plus grande */
+      font-size: 10em;
       font-weight: bold;
-      color: #28a745; /* Couleur verte */
-      display: block; /* S'assure qu'il est visible */
-}
-  
+      color: #28a745;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -27,25 +26,61 @@
   <script>
     const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmxYSuenbO29dqW6wqwDhCeFiTl45GvqYk_MNgcZS7EVkd5CCfUA_n-eRKzQIdwRr9zw/exec";
     const html5QrCode = new Html5Qrcode("reader");
-    
+
+    // Anti-doublon
+    let lastCode = null;
+    let lastScanTime = 0;
+
+    // File d’attente
+    const queue = [];
+    let sending = false;
+
     function onScanSuccess(decodedText) {
       const code = String(decodedText || "").trim();
       if (!code) return;
-      
+
+      const now = Date.now();
+      if (code === lastCode && (now - lastScanTime) < 1500) {
+        // Ignorer doublon dans les 1.5 secondes
+        return;
+      }
+      lastCode = code;
+      lastScanTime = now;
+
+      sendCode(code);
+      document.getElementById("result").innerText = code;
+    }
+
+    function onScanFailure(error) {
+      // on peut laisser vide ou logger si besoin
+    }
+
+    function sendCode(code) {
+      queue.push(code);
+      processQueue();
+    }
+
+    function processQueue() {
+      if (sending || queue.length === 0) return;
+
+      sending = true;
+      const code = queue.shift();
+
       fetch(APP_SCRIPT_URL, {
         method: "POST",
-        mode: 'no-cors',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code })
       })
       .then(r => r.text())
       .then(txt => console.log("Réponse serveur:", txt))
-      .catch(err => console.error("Erreur envoi:", err));
-      
-      document.getElementById("result").innerText = code;
-    }
-
-    function onScanFailure(error) {
+      .catch(err => {
+        console.error("Erreur envoi:", err);
+        queue.push(code); // on remet dans la file en cas d’échec
+      })
+      .finally(() => {
+        sending = false;
+        if (queue.length > 0) processQueue();
+      });
     }
 
     Html5Qrcode.getCameras().then(cameras => {
