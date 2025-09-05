@@ -59,11 +59,11 @@
   </style>
 </head>
 <body>
-  <h1>Scanner Dossards</h1>
+  <h1 font-size: 6em>Scanner Dossards</h1>
   <div id="reader"></div>
   <div id="current-scan">---</div>
-  <div id="counter">Enregistrés : 0</div>
-  <h2>Historique</h2>
+  <div id="counter">Scannés : 0</div>
+  <h2 font-size: 3em>Historique</h2>
   <div id="results"></div>
 
   <!-- Bip sonore local -->
@@ -94,7 +94,7 @@
     // --- Mise à jour compteur ---
     function updateCounter() {
       document.getElementById("counter").textContent =
-        "Scans uniques : " + scannedCodes.size;
+        "Scannés : " + scannedCodes.size;
     }
 
     // --- Charger les scans existants ---
@@ -134,7 +134,7 @@
     function showCurrentScan(code) {
       const currentDiv = document.getElementById('current-scan');
       currentDiv.textContent = code;
-      setTimeout(() => currentDiv.textContent = "---", 2000); // 2s
+      setTimeout(() => currentDiv.textContent = "---", 2000); // 3s
     }
 
     // --- Ajouter au petit historique ---
