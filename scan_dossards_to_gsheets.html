@@ -71,6 +71,7 @@
 
     function processQueue() {
       if (sending || queue.length === 0) return;
+      console.log("Envoi en cours du code :", code); // <-- ajouté
 
       sending = true;
       const code = queue.shift();
