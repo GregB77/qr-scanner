@@ -56,6 +56,9 @@
   <h2>📋 Historique</h2>
   <div id="results"></div>
 
+  <!-- Bip sonore local -->
+  <audio id="beep-sound" src="bip.mp3" preload="auto"></audio>
+
   <script>
     // --- Configuration Firebase ---
     const firebaseConfig = {
@@ -76,16 +79,7 @@
     let lastScan = "";
     let lastScanTime = 0;
 
-    // --- Fonction bip sonore ---
-    function playBeep() {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = ctx.createOscillator();
-      oscillator.type = 'square';
-      oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
-      oscillator.connect(ctx.destination);
-      oscillator.start();
-      oscillator.stop(ctx.currentTime + 0.1);
-    }
+    const beepSound = document.getElementById('beep-sound');
 
     // --- Mise à jour compteur ---
     function updateCounter() {
@@ -116,7 +110,7 @@
 
       entryRef.once("value", snapshot => {
         if (!snapshot.exists()) {
-          entryRef.set({ dateTime: Date.now() }).then(() => { // on garde juste code
+          entryRef.set({ dateTime: Date.now() }).then(() => { 
             scannedCodes.add(qrCodeValue);
             showCurrentScan(qrCodeValue);
             addScanToHistory(qrCodeValue, true);
@@ -126,10 +120,11 @@
       });
     }
 
-    // --- Afficher scan en cours ---
+    // --- Afficher scan en cours quelques secondes ---
     function showCurrentScan(code) {
       const currentDiv = document.getElementById('current-scan');
       currentDiv.textContent = code;
+      setTimeout(() => currentDiv.textContent = "---", 2000); // 2s avant de revenir à ---
     }
 
     // --- Ajouter au petit historique ---
@@ -143,7 +138,7 @@
       if (notify) {
         entryDiv.classList.add('new-scan');
         setTimeout(() => entryDiv.classList.remove('new-scan'), 800);
-        playBeep();
+        beepSound.play();
       }
     }
 
