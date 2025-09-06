@@ -60,7 +60,7 @@
 
       // Ensuite charger scans et participants
       Promise.all([
-        db.ref('scan_dossards').once('value'),
+        db.ref('scans_dossards').once('value'),
         db.ref('participants').once('value')
       ]).then(([scanSnap, participantsSnap]) => {
         const participants = participantsSnap.val() || {};
