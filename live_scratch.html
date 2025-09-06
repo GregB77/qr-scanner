@@ -2,23 +2,30 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Classement Course</title>
+  <title>Classement Course - Moderne</title>
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
-    h1 { text-align: center; margin-bottom: 10px; }
-    #depart { text-align: center; margin-bottom: 20px; font-size: 1.2em; color: #444; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #0077cc; color: #fff; }
-    tbody tr:nth-child(even) { background: #f2f2f2; }
+    body { font-family: 'Arial', sans-serif; margin: 20px; background: #f9f9f9; }
+    h1 { text-align: center; margin-bottom: 20px; }
+    #classement_wrapper { max-width: 1200px; margin: 0 auto; }
+    table.dataTable tbody tr:nth-child(even) { background: #f2f2f2; }
+    table.dataTable thead { background: #0077cc; color: #fff; }
+    table.dataTable tbody td { vertical-align: middle; }
   </style>
 </head>
 <body>
   <h1>Classement Course</h1>
-  <div id="depart">Chargement de l'heure de départ...</div>
-  <table id="classement">
+  <table id="classement" class="display stripe hover">
     <thead>
       <tr>
         <th>Dossard</th>
@@ -51,98 +58,127 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Charger l'heure de départ depuis Firebase
-    db.ref('data/depart_courses').once('value').then(snapshot => {
-      const departCourseStr = snapshot.val();
-      if (!departCourseStr) {
-        document.getElementById("depart").innerText = "⚠️ Heure de départ non définie dans Firebase";
-        return;
+    let departCourses = {};
+    let participants = {};
+    let scans = {};
+
+    // Parse date au format ISO si besoin
+    function parseScanDate(scanDate) {
+      if (!scanDate) return null;
+      if (!scanDate.endsWith("Z")) {
+        const parts = scanDate.split(/[/ :]/);
+        if (parts.length === 6) {
+          const [dd, mm, yyyy, hh, min, ss] = parts;
+          return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}Z`;
+        }
       }
+      return scanDate;
+    }
 
-      const departureTime = new Date(departCourseStr).getTime();
+    function calculateClassement() {
+      let classement = Object.keys(scans).map(dossard => {
+        const scan = scans[dossard];
+        const participant = participants[dossard] || {};
+        const course = participant.course || "";
+        const departCourseStr = departCourses[course];
+        let tempsMs = Infinity;
+        let tempsStr = "--:--:--";
 
-      // Affichage de l’heure de départ formatée
-      const departAffiche = new Date(departCourseStr).toLocaleString("fr-FR", {
-        timeZone: "Europe/Paris",
-        dateStyle: "short",
-        timeStyle: "medium"
+        if (departCourseStr) {
+          const departureTime = new Date(departCourseStr).getTime();
+          const scanTimeISO = parseScanDate(scan.dateTime);
+          const dt = new Date(scanTimeISO);
+          if (!isNaN(dt)) {
+            tempsMs = dt.getTime() - departureTime;
+            const tempsSec = Math.floor(tempsMs / 1000);
+            const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
+            const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
+            const s = (tempsSec % 60).toString().padStart(2,'0');
+            tempsStr = `${h}:${m}:${s}`;
+          }
+        }
+
+        return {
+          dossard,
+          nom: participant.nom || '',
+          prenom: participant.prenom || '',
+          tempsMs,
+          tempsStr,
+          course,
+          genre: participant.genre || '',
+          categorie: participant.categorie || ''
+        };
       });
-      document.getElementById("depart").innerText = "⏱ Départ : " + departAffiche;
 
-      // Ensuite charger scans et participants
-      Promise.all([
-        db.ref('scans_dossards').once('value'),
-        db.ref('participants').once('value')
-      ]).then(([scanSnap, participantsSnap]) => {
-        const participants = participantsSnap.val() || {};
-        const scans = scanSnap.val() || {};
+      // Filtrer et trier
+      classement = classement.filter(p => p.tempsMs !== Infinity);
+      classement.sort((a,b) => a.tempsMs - b.tempsMs);
 
-        let classement = Object.keys(scans).map(dossard => {
-          const scan = scans[dossard];
-          const participant = participants[dossard] || {};
+      // Calcul positions
+      const scratchCounter = {};
+      const genreCounter = {};
+      const catCounter = {};
 
-          // Convertir le champ dateTime du scan
-          const dt = new Date(scan.dateTime);
-          const tempsMs = dt.getTime() - departureTime;
-          const tempsSec = Math.floor(tempsMs / 1000);
+      classement.forEach(p => {
+        scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
+        p.scratch = scratchCounter[p.course];
 
-          // format hh:mm:ss
-          const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
-          const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
-          const s = (tempsSec % 60).toString().padStart(2,'0');
+        const keyGenre = `${p.course}_${p.genre}`;
+        genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
+        p.posGenre = genreCounter[keyGenre];
 
-          return {
-            dossard,
-            nom: participant.nom || '',
-            prenom: participant.prenom || '',
-            tempsMs,
-            tempsStr: `${h}:${m}:${s}`,
-            course: participant.course || '',
-            genre: participant.genre || '',
-            categorie: participant.categorie || ''
-          };
-        });
-
-        // Trier par temps croissant
-        classement.sort((a,b) => a.tempsMs - b.tempsMs);
-
-        // Calcul des positions
-        const scratchCounter = {};
-        const genreCounter = {};
-        const catCounter = {};
-
-        classement.forEach(p => {
-          scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
-          p.scratch = scratchCounter[p.course];
-
-          const keyGenre = `${p.course}_${p.genre}`;
-          genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
-          p.posGenre = genreCounter[keyGenre];
-
-          const keyCat = `${p.course}_${p.categorie}`;
-          catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
-          p.posCat = catCounter[keyCat];
-        });
-
-        // Affichage
-        const tbody = document.querySelector("#classement tbody");
-        classement.forEach(p => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${p.dossard}</td>
-            <td>${p.nom}</td>
-            <td>${p.prenom}</td>
-            <td>${p.tempsStr}</td>
-            <td>${p.course}</td>
-            <td>${p.scratch}</td>
-            <td>${p.genre}</td>
-            <td>${p.posGenre}</td>
-            <td>${p.categorie}</td>
-            <td>${p.posCat}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+        const keyCat = `${p.course}_${p.categorie}`;
+        catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
+        p.posCat = catCounter[keyCat];
       });
+
+      return classement;
+    }
+
+    function renderTable() {
+      const classement = calculateClassement();
+      const table = $('#classement').DataTable();
+      table.clear();
+
+      classement.forEach(p => {
+        table.row.add([
+          p.dossard, p.nom, p.prenom, p.tempsStr, p.course,
+          p.scratch, p.genre, p.posGenre, p.categorie, p.posCat
+        ]);
+      });
+
+      table.draw();
+    }
+
+    $(document).ready(function() {
+      $('#classement').DataTable({
+        paging: false,
+        info: false,
+        searching: false,
+        order: [[3,'asc']], // trier par temps initial
+        columnDefs: [
+          { targets: [3,5,7,9], type: 'num' } // colonnes numériques
+        ]
+      });
+
+      // Listener Firebase
+      db.ref('data/depart_courses').on('value', snapshot => {
+        departCourses = snapshot.val() || {};
+        renderTable();
+      });
+
+      db.ref('participants').on('value', snapshot => {
+        participants = snapshot.val() || {};
+        renderTable();
+      });
+
+      db.ref('scans_dossards').on('value', snapshot => {
+        scans = snapshot.val() || {};
+        renderTable();
+      });
+
+      // Auto-refresh toutes les 15s (sécurité)
+      setInterval(renderTable, 15000);
     });
   </script>
 </body>
