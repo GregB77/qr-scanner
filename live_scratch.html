@@ -1,140 +1,100 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>Classement Course</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
-    h1 { text-align: center; margin-bottom: 10px; }
-    h2 { text-align: center; margin-bottom: 20px; color: #444; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #0077cc; color: #fff; cursor: pointer; }
-    tbody tr:nth-child(even) { background: #f2f2f2; }
-  </style>
-</head>
-<body>
-  <h1>Classement Course</h1>
-  <h2 id="stats">Chargement...</h2>
-  <table id="classement">
-    <thead>
-      <tr>
-        <th>Dossard</th>
-        <th>Nom</th>
-        <th>Prénom</th>
-        <th>Temps</th>
-        <th>Course</th>
-        <th>Scratch</th>
-        <th>Genre</th>
-        <th>Pos. Genre</th>
-        <th>CAT</th>
-        <th>Pos. CAT</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+    authDomain: "calor-run.firebaseapp.com",
+    databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "calor-run",
+    storageBucket: "calor-run.firebasestorage.app",
+    messagingSenderId: "329949291334",
+    appId: "1:329949291334:web:c71ef20268c609cf953b47",
+    measurementId: "G-YVQPW6JGPK"
+  };
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
-      authDomain: "calor-run.firebaseapp.com",
-      databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "calor-run",
-      storageBucket: "calor-run.firebasestorage.app",
-      messagingSenderId: "329949291334",
-      appId: "1:329949291334:web:c71ef20268c609cf953b47",
-      measurementId: "G-YVQPW6JGPK"
-    };
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  // Heure de départ (9h00)
+  const departureTime = new Date();
+  departureTime.setHours(9,0,0,0);
+  const departureTimestamp = departureTime.getTime();
 
-    // Heure de départ (9h00) au format ISO UTC
-    const departureTime = new Date();
-    departureTime.setHours(9,0,0,0);
-    const departureTimestamp = departureTime.getTime();
+  const tbody = document.querySelector("#classement tbody");
+  const statsDiv = document.getElementById("stats");
 
-    const tbody = document.querySelector("#classement tbody");
-    const statsDiv = document.getElementById("stats");
+  // Compteurs
+  const scratchCounter = {};
+  const genreCounter = {};
+  const catCounter = {};
+  const courseCounts = {};
 
-    // Compteurs
-    const scratchCounter = {};
-    const genreCounter = {};
-    const catCounter = {};
-    const courseCounts = {};
+  // Cache limité à 500
+  let cache = JSON.parse(localStorage.getItem("classement_cache") || "[]");
+  let participants = {};
 
-    // Cache local limité à 500
-    let cache = JSON.parse(localStorage.getItem("classement_cache") || "[]");
+  // --- Fonction d’affichage ---
+  function afficherCoureur(dossard, scan) {
+    const participant = participants[dossard];
+    if (!participant) return; // sécurité : ignorer si participant inconnu
 
-    // Récupérer les participants une fois
-    let participants = {};
-    db.ref("participants").once("value").then(snap => {
-      participants = snap.val() || {};
-    });
+    const tempsMs = new Date(scan.dateTime).getTime() - departureTimestamp;
+    const tempsSec = Math.floor(tempsMs / 1000);
+    const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
+    const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
+    const s = (tempsSec % 60).toString().padStart(2,'0');
 
-    // Fonction d’affichage
-    function afficherCoureur(dossard, scan) {
-      const participant = participants[dossard] || {};
-      const tempsMs = new Date(scan.dateTime).getTime() - departureTimestamp;
-      const tempsSec = Math.floor(tempsMs / 1000);
-      const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
-      const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
-      const s = (tempsSec % 60).toString().padStart(2,'0');
+    // Scratch général par course
+    scratchCounter[participant.course] = (scratchCounter[participant.course] || 0) + 1;
+    const scratch = scratchCounter[participant.course];
 
-      // Scratch général par course
-      scratchCounter[participant.course] = (scratchCounter[participant.course] || 0) + 1;
-      const scratch = scratchCounter[participant.course];
+    // Pos. Genre
+    const keyGenre = `${participant.course}_${participant.genre}`;
+    genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
+    const posGenre = genreCounter[keyGenre];
 
-      // Pos. Genre
-      const keyGenre = `${participant.course}_${participant.genre}`;
-      genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
-      const posGenre = genreCounter[keyGenre];
+    // Pos. CAT
+    const keyCat = `${participant.course}_${participant.categorie}`;
+    catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
+    const posCat = catCounter[keyCat];
 
-      // Pos. CAT
-      const keyCat = `${participant.course}_${participant.categorie}`;
-      catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
-      const posCat = catCounter[keyCat];
+    // Compteurs par course
+    courseCounts[participant.course] = (courseCounts[participant.course] || 0) + 1;
+    statsDiv.textContent = `10 km : ${courseCounts["10km"] || 0} arrivés | 20 km : ${courseCounts["20km"] || 0} arrivés`;
 
-      // Compteurs par course
-      courseCounts[participant.course] = (courseCounts[participant.course] || 0) + 1;
+    // Ajouter au tableau
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${dossard}</td>
+      <td>${participant.nom || ""}</td>
+      <td>${participant.prenom || ""}</td>
+      <td>${h}:${m}:${s}</td>
+      <td>${participant.course || ""}</td>
+      <td>${scratch}</td>
+      <td>${participant.genre || ""}</td>
+      <td>${posGenre}</td>
+      <td>${participant.categorie || ""}</td>
+      <td>${posCat}</td>
+    `;
+    tbody.prepend(tr);
+  }
 
-      // Mise à jour stats affichées
-      statsDiv.textContent = `10 km : ${courseCounts["10km"] || 0} arrivés | 20 km : ${courseCounts["20km"] || 0} arrivés`;
+  // --- Étape 1 : Charger participants ---
+  db.ref("participants").once("value").then(snap => {
+    participants = snap.val() || {};
 
-      // Ajouter au tableau en haut
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${dossard}</td>
-        <td>${participant.nom || ""}</td>
-        <td>${participant.prenom || ""}</td>
-        <td>${h}:${m}:${s}</td>
-        <td>${participant.course || ""}</td>
-        <td>${scratch}</td>
-        <td>${participant.genre || ""}</td>
-        <td>${posGenre}</td>
-        <td>${participant.categorie || ""}</td>
-        <td>${posCat}</td>
-      `;
-      tbody.prepend(tr);
-    }
-
-    // Recharger le cache au démarrage
+    // --- Étape 2 : Rejouer le cache une fois participants connus ---
     cache.forEach(entry => afficherCoureur(entry.dossard, entry.scan));
 
-    // Écoute en temps réel
+    // --- Étape 3 : Activer l’écoute temps réel ---
     db.ref("scan_dossards").on("child_added", snap => {
       const dossard = snap.key;
       const scan = snap.val();
 
       afficherCoureur(dossard, scan);
 
-      // Mettre à jour le cache avec max 500 entrées
+      // Mettre à jour le cache
       cache.push({ dossard, scan });
       if (cache.length > 500) cache.shift();
       localStorage.setItem("classement_cache", JSON.stringify(cache));
     });
-  </script>
-</body>
-</html>
+  });
+</script>
