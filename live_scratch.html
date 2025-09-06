@@ -49,30 +49,28 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- Heure de départ 9h00 Paris ---
+    // Heure de départ (9h00) au format timestamp
     const departureTime = new Date();
-    departureTime.setHours(9,0,0,0);
+    departureTime.setHours(9,0,0,0); // 9h00 aujourd'hui
     const departureTimestamp = departureTime.getTime();
 
+    // --- Charger les deux tables ---
     Promise.all([
-      db.ref('scans_dossards').once('value'),
+      db.ref('scan_dossards').once('value'),
       db.ref('participants').once('value')
     ]).then(([scanSnap, participantsSnap]) => {
       const participants = participantsSnap.val() || {};
       const scans = scanSnap.val() || {};
 
-      // --- Créer un tableau avec toutes les infos ---
+      // On transforme en tableau
       let classement = Object.keys(scans).map(dossard => {
         const scan = scans[dossard];
         const participant = participants[dossard] || {};
-        const scanTimestamp = new Date(scan.dateTime).getTime(); // Convertit ISO 8601
-        const tempsMs = scanTimestamp - departureTimestamp;
-
-        const totalSec = Math.floor(tempsMs / 1000);
-        const h = Math.floor(totalSec / 3600).toString().padStart(2,'0');
-        const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2,'0');
-        const s = (totalSec % 60).toString().padStart(2,'0');
-
+        const tempsMs = scan.dateTime - departureTimestamp;
+        const tempsSec = Math.floor(tempsMs / 1000);
+        const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
+        const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
+        const s = (tempsSec % 60).toString().padStart(2,'0');
         return {
           dossard,
           nom: participant.nom || '',
@@ -85,25 +83,25 @@
         };
       });
 
-      // --- Trier par temps (premier arrivé en haut) ---
-      classement.sort((a,b) => a.tempsMs - b.tempsMs);
+      // --- Trier par course et temps ---
+      classement.sort((a,b) => a.tempsMs - b.tempsMs); // premier arrivé en haut
 
       // --- Calculer Scratch / Pos Genre / Pos CAT ---
-      const scratchCounter = {};
-      const genreCounter = {};
-      const catCounter = {};
+      const scratchCounter = {}; // course => compteur
+      const genreCounter = {};   // course_genre => compteur
+      const catCounter = {};     // course_categorie => compteur
 
       classement.forEach(p => {
-        // Scratch par course
+        // Scratch général par course
         scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
         p.scratch = scratchCounter[p.course];
 
-        // Pos Genre
+        // Pos. Genre
         const keyGenre = `${p.course}_${p.genre}`;
         genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
         p.posGenre = genreCounter[keyGenre];
 
-        // Pos CAT
+        // Pos. CAT
         const keyCat = `${p.course}_${p.categorie}`;
         catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
         p.posCat = catCounter[keyCat];
