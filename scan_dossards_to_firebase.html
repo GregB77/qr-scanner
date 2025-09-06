@@ -26,12 +26,12 @@
       overflow: hidden;
     }
     #current-scan {
-      font-size: 6em;  /* scan en cours */
+      font-size: 6em;  /* police pour le scan en cours */
       font-weight: bold;
-      color: #28a745; 
+      color: #28a745; /* vert vif */
       margin: 20px 0;
     }
-    #counter { 
+    #counter { /* police pour le compteur */
       font-size: 3em;
       font-weight: bold;
       margin: 10px 0;
@@ -43,9 +43,9 @@
       padding: 10px; 
       text-align: center; 
     }
-    .scan-entry { 
+    .scan-entry { /* police pour l’historique */
       margin-bottom: 6px; 
-      font-size: 2em; /* petite police pour historique */
+      font-size: 3em;
       font-weight: bold; 
       display: inline-block; 
       background: #f0f0f0; 
@@ -59,15 +59,15 @@
   </style>
 </head>
 <body>
-  <h1>Scanner Dossards</h1>
+  <h1 font-size: 6em>Scanner Dossards</h1>
   <div id="reader"></div>
   <div id="current-scan">---</div>
   <div id="counter">Scannés : 0</div>
-  <h2>Historique</h2>
+  <h2 font-size: 3em>Historique</h2>
   <div id="results"></div>
 
   <!-- Bip sonore local -->
-  <audio id="beep-sound" src="bip.mp3" preload="auto"></audio>
+  <audio id="beep-sound" src="beep.mp3" preload="auto"></audio>
 
   <script>
     // --- Configuration Firebase ---
@@ -88,6 +88,7 @@
     const scannedCodes = new Set();
     let lastScan = "";
     let lastScanTime = 0;
+
     const beepSound = document.getElementById('beep-sound');
 
     // --- Mise à jour compteur ---
@@ -119,9 +120,7 @@
 
       entryRef.once("value", snapshot => {
         if (!snapshot.exists()) {
-          // Stockage ISO 8601
-          const nowISO = new Date().toISOString();
-          entryRef.set({ dateTime: nowISO }).then(() => { 
+          entryRef.set({ dateTime: Date.now() }).then(() => { 
             scannedCodes.add(qrCodeValue);
             showCurrentScan(qrCodeValue);
             addScanToHistory(qrCodeValue, true);
@@ -131,11 +130,11 @@
       });
     }
 
-    // --- Afficher scan en cours ---
+    // --- Afficher scan en cours quelques secondes ---
     function showCurrentScan(code) {
       const currentDiv = document.getElementById('current-scan');
       currentDiv.textContent = code;
-      setTimeout(() => currentDiv.textContent = "---", 2000);
+      setTimeout(() => currentDiv.textContent = "---", 2000); // 3s
     }
 
     // --- Ajouter au petit historique ---
