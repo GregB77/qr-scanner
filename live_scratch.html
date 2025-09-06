@@ -1,100 +1,124 @@
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
-    authDomain: "calor-run.firebaseapp.com",
-    databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "calor-run",
-    storageBucket: "calor-run.firebasestorage.app",
-    messagingSenderId: "329949291334",
-    appId: "1:329949291334:web:c71ef20268c609cf953b47",
-    measurementId: "G-YVQPW6JGPK"
-  };
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Classement Course</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h1 { text-align: center; margin-bottom: 5px; }
+    #counters { text-align: center; margin-bottom: 20px; font-size: 1.1em; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #0077cc; color: #fff; }
+    tbody tr:nth-child(even) { background: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>Classement Course</h1>
+  <div id="counters">Chargement...</div>
 
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+  <table id="classement">
+    <thead>
+      <tr>
+        <th>Dossard</th>
+        <th>Nom</th>
+        <th>Prénom</th>
+        <th>Temps</th>
+        <th>Course</th>
+        <th>Scratch</th>
+        <th>Genre</th>
+        <th>Pos. Genre</th>
+        <th>CAT</th>
+        <th>Pos. CAT</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-  // Heure de départ (9h00)
-  const departureTime = new Date();
-  departureTime.setHours(9,0,0,0);
-  const departureTimestamp = departureTime.getTime();
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+      authDomain: "calor-run.firebaseapp.com",
+      databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "calor-run",
+      storageBucket: "calor-run.firebasestorage.app",
+      messagingSenderId: "329949291334",
+      appId: "1:329949291334:web:c71ef20268c609cf953b47",
+      measurementId: "G-YVQPW6JGPK"
+    };
 
-  const tbody = document.querySelector("#classement tbody");
-  const statsDiv = document.getElementById("stats");
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-  // Compteurs
-  const scratchCounter = {};
-  const genreCounter = {};
-  const catCounter = {};
-  const courseCounts = {};
+    // Heure de départ (9h00)
+    const departureTime = new Date();
+    departureTime.setHours(9,0,0,0); 
+    const departureTimestamp = departureTime.getTime();
 
-  // Cache limité à 500
-  let cache = JSON.parse(localStorage.getItem("classement_cache") || "[]");
-  let participants = {};
+    // Compteurs
+    const scratchCounter = {};
+    const genreCounter = {};
+    const catCounter = {};
+    let count10 = 0, count20 = 0;
 
-  // --- Fonction d’affichage ---
-  function afficherCoureur(dossard, scan) {
-    const participant = participants[dossard];
-    if (!participant) return; // sécurité : ignorer si participant inconnu
+    const tbody = document.querySelector("#classement tbody");
+    const countersDiv = document.getElementById("counters");
 
-    const tempsMs = new Date(scan.dateTime).getTime() - departureTimestamp;
-    const tempsSec = Math.floor(tempsMs / 1000);
-    const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
-    const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
-    const s = (tempsSec % 60).toString().padStart(2,'0');
+    // Charger les participants une seule fois
+    let participants = {};
+    db.ref('participants').once('value').then(snap => {
+      participants = snap.val() || {};
+    });
 
-    // Scratch général par course
-    scratchCounter[participant.course] = (scratchCounter[participant.course] || 0) + 1;
-    const scratch = scratchCounter[participant.course];
-
-    // Pos. Genre
-    const keyGenre = `${participant.course}_${participant.genre}`;
-    genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
-    const posGenre = genreCounter[keyGenre];
-
-    // Pos. CAT
-    const keyCat = `${participant.course}_${participant.categorie}`;
-    catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
-    const posCat = catCounter[keyCat];
-
-    // Compteurs par course
-    courseCounts[participant.course] = (courseCounts[participant.course] || 0) + 1;
-    statsDiv.textContent = `10 km : ${courseCounts["10km"] || 0} arrivés | 20 km : ${courseCounts["20km"] || 0} arrivés`;
-
-    // Ajouter au tableau
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${dossard}</td>
-      <td>${participant.nom || ""}</td>
-      <td>${participant.prenom || ""}</td>
-      <td>${h}:${m}:${s}</td>
-      <td>${participant.course || ""}</td>
-      <td>${scratch}</td>
-      <td>${participant.genre || ""}</td>
-      <td>${posGenre}</td>
-      <td>${participant.categorie || ""}</td>
-      <td>${posCat}</td>
-    `;
-    tbody.prepend(tr);
-  }
-
-  // --- Étape 1 : Charger participants ---
-  db.ref("participants").once("value").then(snap => {
-    participants = snap.val() || {};
-
-    // --- Étape 2 : Rejouer le cache une fois participants connus ---
-    cache.forEach(entry => afficherCoureur(entry.dossard, entry.scan));
-
-    // --- Étape 3 : Activer l’écoute temps réel ---
-    db.ref("scan_dossards").on("child_added", snap => {
+    // Ecoute en temps réel des scans
+    db.ref('scan_dossards').on('child_added', snap => {
       const dossard = snap.key;
       const scan = snap.val();
+      const participant = participants[dossard] || {};
 
-      afficherCoureur(dossard, scan);
+      const scanTime = new Date(scan.dateTime).getTime();
+      const tempsMs = scanTime - departureTimestamp;
+      const tempsSec = Math.floor(tempsMs / 1000);
+      const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
+      const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
+      const s = (tempsSec % 60).toString().padStart(2,'0');
+      const tempsStr = `${h}:${m}:${s}`;
 
-      // Mettre à jour le cache
-      cache.push({ dossard, scan });
-      if (cache.length > 500) cache.shift();
-      localStorage.setItem("classement_cache", JSON.stringify(cache));
+      // Mise à jour des compteurs
+      const course = participant.course || '';
+      scratchCounter[course] = (scratchCounter[course] || 0) + 1;
+      const scratch = scratchCounter[course];
+
+      const keyGenre = `${course}_${participant.genre || ''}`;
+      genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
+      const posGenre = genreCounter[keyGenre];
+
+      const keyCat = `${course}_${participant.categorie || ''}`;
+      catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
+      const posCat = catCounter[keyCat];
+
+      if (course.includes("10")) count10++;
+      if (course.includes("20")) count20++;
+      countersDiv.textContent = `10 km : ${count10} arrivés | 20 km : ${count20} arrivés`;
+
+      // Ajout en haut du tableau
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${dossard}</td>
+        <td>${participant.nom || ''}</td>
+        <td>${participant.prenom || ''}</td>
+        <td>${tempsStr}</td>
+        <td>${course}</td>
+        <td>${scratch}</td>
+        <td>${participant.genre || ''}</td>
+        <td>${posGenre}</td>
+        <td>${participant.categorie || ''}</td>
+        <td>${posCat}</td>
+      `;
+      tbody.insertBefore(tr, tbody.firstChild);
     });
-  });
-</script>
+  </script>
+</body>
+</html>
