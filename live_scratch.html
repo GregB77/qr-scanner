@@ -7,7 +7,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
-    h1 { text-align: center; margin-bottom: 20px; }
+    h1 { text-align: center; margin-bottom: 10px; }
+    #departs { text-align: center; margin-bottom: 20px; font-size: 1.1em; color: #444; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #0077cc; color: #fff; }
@@ -16,6 +17,7 @@
 </head>
 <body>
   <h1>Classement Course</h1>
+  <div id="departs">Chargement des heures de départ...</div>
   <table id="classement">
     <thead>
       <tr>
@@ -49,90 +51,126 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Charger l'heure de départ depuis Firebase
-    db.ref('data/depart_course').once('value').then(snapshot => {
-      const departCourseStr = snapshot.val();
-      if (!departCourseStr) {
-        alert("Heure de départ non définie dans Firebase !");
-        return;
-      }
-      const departureTime = new Date(departCourseStr).getTime();
+    let departCourses = {};
+    let participants = {};
+    let scans = {};
 
-      // Ensuite charger scans et participants
-      Promise.all([
-        db.ref('scans_dossards').once('value'),
-        db.ref('participants').once('value')
-      ]).then(([scanSnap, participantsSnap]) => {
-        const participants = participantsSnap.val() || {};
-        const scans = scanSnap.val() || {};
+    // Fonction pour recalculer et afficher le classement
+    function renderClassement() {
+      const tbody = document.querySelector("#classement tbody");
+      tbody.innerHTML = "";
 
-        let classement = Object.keys(scans).map(dossard => {
-          const scan = scans[dossard];
-          const participant = participants[dossard] || {};
+      let classement = Object.keys(scans).map(dossard => {
+        const scan = scans[dossard];
+        const participant = participants[dossard] || {};
 
-          // Convertir le champ dateTime du scan
+        const course = participant.course || "";
+        const departCourseStr = departCourses[course];
+
+        let tempsMs = Infinity;
+        let tempsStr = "--:--:--";
+
+        if (departCourseStr) {
+          const departureTime = new Date(departCourseStr).getTime();
           const dt = new Date(scan.dateTime);
-          const tempsMs = dt.getTime() - departureTime;
+          tempsMs = dt.getTime() - departureTime;
           const tempsSec = Math.floor(tempsMs / 1000);
 
-          // format hh:mm:ss
           const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
           const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
           const s = (tempsSec % 60).toString().padStart(2,'0');
+          tempsStr = `${h}:${m}:${s}`;
+        }
 
-          return {
-            dossard,
-            nom: participant.nom || '',
-            prenom: participant.prenom || '',
-            tempsMs,
-            tempsStr: `${h}:${m}:${s}`,
-            course: participant.course || '',
-            genre: participant.genre || '',
-            categorie: participant.categorie || ''
-          };
-        });
-
-        // Trier par temps croissant
-        classement.sort((a,b) => a.tempsMs - b.tempsMs);
-
-        // Calcul des positions
-        const scratchCounter = {};
-        const genreCounter = {};
-        const catCounter = {};
-
-        classement.forEach(p => {
-          scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
-          p.scratch = scratchCounter[p.course];
-
-          const keyGenre = `${p.course}_${p.genre}`;
-          genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
-          p.posGenre = genreCounter[keyGenre];
-
-          const keyCat = `${p.course}_${p.categorie}`;
-          catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
-          p.posCat = catCounter[keyCat];
-        });
-
-        // Affichage
-        const tbody = document.querySelector("#classement tbody");
-        classement.forEach(p => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${p.dossard}</td>
-            <td>${p.nom}</td>
-            <td>${p.prenom}</td>
-            <td>${p.tempsStr}</td>
-            <td>${p.course}</td>
-            <td>${p.scratch}</td>
-            <td>${p.genre}</td>
-            <td>${p.posGenre}</td>
-            <td>${p.categorie}</td>
-            <td>${p.posCat}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+        return {
+          dossard,
+          nom: participant.nom || '',
+          prenom: participant.prenom || '',
+          tempsMs,
+          tempsStr,
+          course,
+          genre: participant.genre || '',
+          categorie: participant.categorie || ''
+        };
       });
+
+      // Trier par temps croissant
+      classement = classement.filter(p => p.tempsMs !== Infinity);
+      classement.sort((a,b) => a.tempsMs - b.tempsMs);
+
+      // Calcul des positions
+      const scratchCounter = {};
+      const genreCounter = {};
+      const catCounter = {};
+
+      classement.forEach(p => {
+        scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
+        p.scratch = scratchCounter[p.course];
+
+        const keyGenre = `${p.course}_${p.genre}`;
+        genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
+        p.posGenre = genreCounter[keyGenre];
+
+        const keyCat = `${p.course}_${p.categorie}`;
+        catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
+        p.posCat = catCounter[keyCat];
+      });
+
+      // Affichage
+      classement.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.dossard}</td>
+          <td>${p.nom}</td>
+          <td>${p.prenom}</td>
+          <td>${p.tempsStr}</td>
+          <td>${p.course}</td>
+          <td>${p.scratch}</td>
+          <td>${p.genre}</td>
+          <td>${p.posGenre}</td>
+          <td>${p.categorie}</td>
+          <td>${p.posCat}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Charger heures de départ
+    db.ref('data/depart_courses').on('value', snapshot => {
+      departCourses = snapshot.val() || {};
+      const departsDiv = document.getElementById("departs");
+
+      if (Object.keys(departCourses).length === 0) {
+        departsDiv.innerText = "⚠️ Aucune heure de départ définie";
+        return;
+      }
+
+      let html = "<b>Heures de départ :</b><br>";
+      for (const course in departCourses) {
+        const formatted = new Date(departCourses[course]).toLocaleString("fr-FR", {
+          timeZone: "Europe/Paris",
+          dateStyle: "short",
+          timeStyle: "medium"
+        });
+        html += `${course} → ${formatted}<br>`;
+      }
+      departsDiv.innerHTML = html;
+
+      renderClassement();
     });
+
+    // Charger participants
+    db.ref('participants').on('value', snapshot => {
+      participants = snapshot.val() || {};
+      renderClassement();
+    });
+
+    // Charger scans en temps réel
+    db.ref('scans_dossards').on('value', snapshot => {
+      scans = snapshot.val() || {};
+      renderClassement();
+    });
+
   </script>
 </body>
 </html>
