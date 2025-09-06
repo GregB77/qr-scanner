@@ -7,17 +7,15 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
-    h1 { text-align: center; margin-bottom: 10px; }
-    h2 { text-align: center; margin-bottom: 20px; color: #444; }
+    h1 { text-align: center; margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #0077cc; color: #fff; cursor: pointer; }
+    th { background: #0077cc; color: #fff; }
     tbody tr:nth-child(even) { background: #f2f2f2; }
   </style>
 </head>
 <body>
   <h1>Classement Course</h1>
-  <h2 id="stats">Chargement...</h2>
   <table id="classement">
     <thead>
       <tr>
@@ -51,89 +49,82 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Heure de départ (9h00) au format ISO UTC
+    // Heure de départ (9h00) au format timestamp
     const departureTime = new Date();
-    departureTime.setHours(9,0,0,0);
+    departureTime.setHours(9,0,0,0); // 9h00 aujourd'hui
     const departureTimestamp = departureTime.getTime();
 
-    const tbody = document.querySelector("#classement tbody");
-    const statsDiv = document.getElementById("stats");
+    // --- Charger les deux tables ---
+    Promise.all([
+      db.ref('scan_dossards').once('value'),
+      db.ref('participants').once('value')
+    ]).then(([scanSnap, participantsSnap]) => {
+      const participants = participantsSnap.val() || {};
+      const scans = scanSnap.val() || {};
 
-    // Compteurs
-    const scratchCounter = {};
-    const genreCounter = {};
-    const catCounter = {};
-    const courseCounts = {};
+      // On transforme en tableau
+      let classement = Object.keys(scans).map(dossard => {
+        const scan = scans[dossard];
+        const participant = participants[dossard] || {};
+        const tempsMs = scan.dateTime - departureTimestamp;
+        const tempsSec = Math.floor(tempsMs / 1000);
+        const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
+        const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
+        const s = (tempsSec % 60).toString().padStart(2,'0');
+        return {
+          dossard,
+          nom: participant.nom || '',
+          prenom: participant.prenom || '',
+          tempsMs,
+          tempsStr: `${h}:${m}:${s}`,
+          course: participant.course || '',
+          genre: participant.genre || '',
+          categorie: participant.categorie || ''
+        };
+      });
 
-    // Cache local limité à 500
-    let cache = JSON.parse(localStorage.getItem("classement_cache") || "[]");
+      // --- Trier par course et temps ---
+      classement.sort((a,b) => a.tempsMs - b.tempsMs); // premier arrivé en haut
 
-    // Récupérer les participants une fois
-    let participants = {};
-    db.ref("participants").once("value").then(snap => {
-      participants = snap.val() || {};
-    });
+      // --- Calculer Scratch / Pos Genre / Pos CAT ---
+      const scratchCounter = {}; // course => compteur
+      const genreCounter = {};   // course_genre => compteur
+      const catCounter = {};     // course_categorie => compteur
 
-    // Fonction d’affichage
-    function afficherCoureur(dossard, scan) {
-      const participant = participants[dossard] || {};
-      const tempsMs = new Date(scan.dateTime).getTime() - departureTimestamp;
-      const tempsSec = Math.floor(tempsMs / 1000);
-      const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
-      const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
-      const s = (tempsSec % 60).toString().padStart(2,'0');
+      classement.forEach(p => {
+        // Scratch général par course
+        scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
+        p.scratch = scratchCounter[p.course];
 
-      // Scratch général par course
-      scratchCounter[participant.course] = (scratchCounter[participant.course] || 0) + 1;
-      const scratch = scratchCounter[participant.course];
+        // Pos. Genre
+        const keyGenre = `${p.course}_${p.genre}`;
+        genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
+        p.posGenre = genreCounter[keyGenre];
 
-      // Pos. Genre
-      const keyGenre = `${participant.course}_${participant.genre}`;
-      genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
-      const posGenre = genreCounter[keyGenre];
+        // Pos. CAT
+        const keyCat = `${p.course}_${p.categorie}`;
+        catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
+        p.posCat = catCounter[keyCat];
+      });
 
-      // Pos. CAT
-      const keyCat = `${participant.course}_${participant.categorie}`;
-      catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
-      const posCat = catCounter[keyCat];
-
-      // Compteurs par course
-      courseCounts[participant.course] = (courseCounts[participant.course] || 0) + 1;
-
-      // Mise à jour stats affichées
-      statsDiv.textContent = `10 km : ${courseCounts["10km"] || 0} arrivés | 20 km : ${courseCounts["20km"] || 0} arrivés`;
-
-      // Ajouter au tableau en haut
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${dossard}</td>
-        <td>${participant.nom || ""}</td>
-        <td>${participant.prenom || ""}</td>
-        <td>${h}:${m}:${s}</td>
-        <td>${participant.course || ""}</td>
-        <td>${scratch}</td>
-        <td>${participant.genre || ""}</td>
-        <td>${posGenre}</td>
-        <td>${participant.categorie || ""}</td>
-        <td>${posCat}</td>
-      `;
-      tbody.prepend(tr);
-    }
-
-    // Recharger le cache au démarrage
-    cache.forEach(entry => afficherCoureur(entry.dossard, entry.scan));
-
-    // Écoute en temps réel
-    db.ref("scan_dossards").on("child_added", snap => {
-      const dossard = snap.key;
-      const scan = snap.val();
-
-      afficherCoureur(dossard, scan);
-
-      // Mettre à jour le cache avec max 500 entrées
-      cache.push({ dossard, scan });
-      if (cache.length > 500) cache.shift();
-      localStorage.setItem("classement_cache", JSON.stringify(cache));
+      // --- Affichage tableau ---
+      const tbody = document.querySelector("#classement tbody");
+      classement.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.dossard}</td>
+          <td>${p.nom}</td>
+          <td>${p.prenom}</td>
+          <td>${p.tempsStr}</td>
+          <td>${p.course}</td>
+          <td>${p.scratch}</td>
+          <td>${p.genre}</td>
+          <td>${p.posGenre}</td>
+          <td>${p.categorie}</td>
+          <td>${p.posCat}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     });
   </script>
 </body>
