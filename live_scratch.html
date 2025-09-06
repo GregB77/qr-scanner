@@ -48,7 +48,6 @@
       appId: "1:329949291334:web:c71ef20268c609cf953b47"
     };
 
-    // --- Initialisation ---
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -57,7 +56,7 @@
     departureTime.setHours(9,0,0,0);
     const departureTimestamp = departureTime.getTime();
 
-    // Compteurs pour Scratch/Genre/CAT
+    // Compteurs
     const scratchCounter = {};
     const genreCounter = {};
     const catCounter = {};
@@ -77,6 +76,11 @@
         const scan = snap.val();
         const participant = participants[dossard] || {};
 
+        const course = String(participant.course || '');
+        const genre = String(participant.genre || '');
+        const categorie = String(participant.categorie || '');
+
+        // Temps écoulé depuis le départ
         const scanTime = new Date(scan.dateTime).getTime();
         const tempsMs = scanTime - departureTimestamp;
         const tempsSec = Math.floor(tempsMs / 1000);
@@ -85,43 +89,13 @@
         const s = (tempsSec % 60).toString().padStart(2,'0');
         const tempsStr = `${h}:${m}:${s}`;
 
-        // Scratch
-        const course = participant.course || '';
+        // Scratch / Pos Genre / Pos Cat
         scratchCounter[course] = (scratchCounter[course] || 0) + 1;
         const scratch = scratchCounter[course];
 
-        // Genre
-        const keyGenre = `${course}_${participant.genre || ''}`;
+        const keyGenre = `${course}_${genre}`;
         genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
         const posGenre = genreCounter[keyGenre];
 
-        // Catégorie
-        const keyCat = `${course}_${participant.categorie || ''}`;
-        catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
-        const posCat = catCounter[keyCat];
-
-        // Compteurs par course
-        if (course.includes("10")) count10++;
-        if (course.includes("20")) count20++;
-        countersDiv.textContent = `10 km : ${count10} arrivés | 20 km : ${count20} arrivés`;
-
-        // Ajout ligne tableau en haut
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${dossard}</td>
-          <td>${participant.nom || ''}</td>
-          <td>${participant.prenom || ''}</td>
-          <td>${tempsStr}</td>
-          <td>${course}</td>
-          <td>${scratch}</td>
-          <td>${participant.genre || ''}</td>
-          <td>${posGenre}</td>
-          <td>${participant.categorie || ''}</td>
-          <td>${posCat}</td>
-        `;
-        tbody.insertBefore(tr, tbody.firstChild);
-      });
-    });
-  </script>
-</body>
-</html>
+        const keyCat = `${course}_${categorie}`;
+        catCounter[keyCat] = (catCounter[keyCat] || 0) +
