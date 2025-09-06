@@ -55,7 +55,20 @@
     let participants = {};
     let scans = {};
 
-    // Fonction pour recalculer et afficher le classement
+    function parseScanDate(scanDate) {
+      // Si déjà ISO, ok
+      if (!scanDate) return null;
+      if (!scanDate.endsWith("Z")) {
+        // convertit format "DD/MM/YYYY HH:MM:SS" en ISO
+        const parts = scanDate.split(/[/ :]/);
+        if (parts.length === 6) {
+          const [dd, mm, yyyy, hh, min, ss] = parts;
+          return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}Z`;
+        }
+      }
+      return scanDate;
+    }
+
     function renderClassement() {
       const tbody = document.querySelector("#classement tbody");
       tbody.innerHTML = "";
@@ -66,20 +79,21 @@
 
         const course = participant.course || "";
         const departCourseStr = departCourses[course];
-
         let tempsMs = Infinity;
         let tempsStr = "--:--:--";
 
         if (departCourseStr) {
           const departureTime = new Date(departCourseStr).getTime();
-          const dt = new Date(scan.dateTime);
-          tempsMs = dt.getTime() - departureTime;
-          const tempsSec = Math.floor(tempsMs / 1000);
-
-          const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
-          const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
-          const s = (tempsSec % 60).toString().padStart(2,'0');
-          tempsStr = `${h}:${m}:${s}`;
+          const scanTimeISO = parseScanDate(scan.dateTime);
+          const dt = new Date(scanTimeISO);
+          if (!isNaN(dt)) {
+            tempsMs = dt.getTime() - departureTime;
+            const tempsSec = Math.floor(tempsMs / 1000);
+            const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
+            const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
+            const s = (tempsSec % 60).toString().padStart(2,'0');
+            tempsStr = `${h}:${m}:${s}`;
+          }
         }
 
         return {
@@ -94,11 +108,10 @@
         };
       });
 
-      // Trier par temps croissant
       classement = classement.filter(p => p.tempsMs !== Infinity);
       classement.sort((a,b) => a.tempsMs - b.tempsMs);
 
-      // Calcul des positions
+      // Calcul positions
       const scratchCounter = {};
       const genreCounter = {};
       const catCounter = {};
@@ -135,12 +148,12 @@
       });
     }
 
-    // Charger heures de départ
+    // Écoute temps réel
     db.ref('data/depart_courses').on('value', snapshot => {
       departCourses = snapshot.val() || {};
       const departsDiv = document.getElementById("departs");
 
-      if (Object.keys(departCourses).length === 0) {
+      if (!Object.keys(departCourses).length) {
         departsDiv.innerText = "⚠️ Aucune heure de départ définie";
         return;
       }
@@ -155,22 +168,18 @@
         html += `${course} → ${formatted}<br>`;
       }
       departsDiv.innerHTML = html;
-
       renderClassement();
     });
 
-    // Charger participants
     db.ref('participants').on('value', snapshot => {
       participants = snapshot.val() || {};
       renderClassement();
     });
 
-    // Charger scans en temps réel
     db.ref('scans_dossards').on('value', snapshot => {
       scans = snapshot.val() || {};
       renderClassement();
     });
-
   </script>
 </body>
 </html>
