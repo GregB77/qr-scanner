@@ -62,32 +62,19 @@
     let participants = {};
     let scans = {};
 
-    // --- Conversion robuste des dates ---
+    // Parse date au format ISO si besoin
     function parseScanDate(scanDate) {
       if (!scanDate) return null;
-
-      // Si c’est un objet Date
-      if (scanDate instanceof Date) return scanDate.toISOString();
-
-      // Si c’est un nombre (timestamp)
-      if (typeof scanDate === 'number') return new Date(scanDate).toISOString();
-
-      // Si c’est une chaîne
-      if (typeof scanDate === 'string') {
-        if (!scanDate.endsWith("Z")) {
-          const parts = scanDate.split(/[/ :]/);
-          if (parts.length === 6) {
-            const [dd, mm, yyyy, hh, min, ss] = parts;
-            return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}Z`;
-          }
+      if (!scanDate.endsWith("Z")) {
+        const parts = scanDate.split(/[/ :]/);
+        if (parts.length === 6) {
+          const [dd, mm, yyyy, hh, min, ss] = parts;
+          return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}Z`;
         }
-        return scanDate; // déjà ISO
       }
-
-      return null;
+      return scanDate;
     }
 
-    // --- Calcul du classement ---
     function calculateClassement() {
       let classement = Object.keys(scans).map(dossard => {
         const scan = scans[dossard];
@@ -148,7 +135,6 @@
       return classement;
     }
 
-    // --- Rendu du tableau ---
     function renderTable() {
       const classement = calculateClassement();
       const table = $('#classement').DataTable();
@@ -164,7 +150,6 @@
       table.draw();
     }
 
-    // --- Initialisation DataTable et listeners Firebase ---
     $(document).ready(function() {
       $('#classement').DataTable({
         paging: false,
@@ -176,7 +161,7 @@
         ]
       });
 
-      // Écoute temps réel Firebase
+      // Listener Firebase
       db.ref('data/depart_courses').on('value', snapshot => {
         departCourses = snapshot.val() || {};
         renderTable();
@@ -192,7 +177,7 @@
         renderTable();
       });
 
-      // Sécurité : refresh toutes les 15s si nécessaire
+      // Auto-refresh toutes les 15s (sécurité)
       setInterval(renderTable, 15000);
     });
   </script>
