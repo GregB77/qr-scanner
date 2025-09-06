@@ -2,22 +2,25 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Classement Live Triable</title>
+<title>Classement Live</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <style>
   body { font-family: Arial, sans-serif; margin: 20px; }
+  h1 { text-align:center; }
   table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-  th { cursor: pointer; background: #f0f0f0; user-select: none; }
-  tr:nth-child(even) { background: #fafafa; }
+  th, td { padding: 8px; text-align: center; border: 1px solid #ccc; }
+  th { background: #f0f0f0; cursor: pointer; position: sticky; top: 0; z-index: 2; user-select: none; }
   th.asc::after { content: " ↑"; }
   th.desc::after { content: " ↓"; }
+  tr:nth-child(even) { background: #fafafa; }
+  tr.top1 { background: #ffd700 !important; } /* or */
+  tr.top2 { background: #c0c0c0 !important; }
+  tr.top3 { background: #cd7f32 !important; }
 </style>
 </head>
 <body>
-
-<h1>Classement Live Triable</h1>
+<h1>Classement Live</h1>
 <table id="classement">
   <thead>
     <tr>
@@ -37,123 +40,130 @@
 </table>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
-    authDomain: "calor-run.firebaseapp.com",
-    databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "calor-run",
-    storageBucket: "calor-run.firebasestorage.app",
-    messagingSenderId: "329949291334",
-    appId: "1:329949291334:web:c71ef20268c609cf953b47"
-  };
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+const firebaseConfig = {
+  apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+  authDomain: "calor-run.firebaseapp.com",
+  databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "calor-run",
+  storageBucket: "calor-run.firebasestorage.app",
+  messagingSenderId: "329949291334",
+  appId: "1:329949291334:web:c71ef20268c609cf953b47"
+};
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  let scanData = [];
-  let sortConfig = { key: "timeMs", direction: "asc" };
+let scanData = [];
+let sortConfig = { key: "timeMs", direction: "asc" };
 
-  async function fetchData() {
-    const [departSnap, partSnap, scanSnap] = await Promise.all([
-      db.ref('depart_courses').once('value'),
-      db.ref('participants').once('value'),
-      db.ref('scans_dossards').once('value')
-    ]);
+// --- Fonction pour transformer les dates en hh:mm:ss ---
+function getTimeStr(scanISO, departISO) {
+  if (!scanISO || !departISO) return "--:--:--";
+  const scanDate = new Date(scanISO);
+  const departDate = new Date(departISO);
+  const diffMs = scanDate - departDate;
+  if (isNaN(diffMs) || diffMs < 0) return "--:--:--";
+  const h = String(Math.floor(diffMs/3600000)).padStart(2,'0');
+  const m = String(Math.floor((diffMs%3600000)/60000)).padStart(2,'0');
+  const s = String(Math.floor((diffMs%60000)/1000)).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
 
-    const departCourses = departSnap.val() || {};
-    const participants = partSnap.val() || {};
-    const scans = scanSnap.val() || {};
+async function fetchData() {
+  const [departSnap, partSnap, scanSnap] = await Promise.all([
+    db.ref('depart_courses').once('value'),
+    db.ref('participants').once('value'),
+    db.ref('scans_dossards').once('value')
+  ]);
 
-    scanData = Object.entries(scans).map(([dossard, data]) => {
-      const participant = participants[dossard] || {};
-      const departISO = departCourses[participant.course] || null;
-      const scanDate = new Date(data.dateTime);
-      let timeStr = "--:--:--";
-      let timeMs = 0;
-      if (departISO) {
-        const departDate = new Date(departISO);
-        timeMs = scanDate - departDate;
-        if (!isNaN(timeMs) && timeMs >= 0) {
-          const h = String(Math.floor(timeMs/3600000)).padStart(2,'0');
-          const m = String(Math.floor((timeMs%3600000)/60000)).padStart(2,'0');
-          const s = String(Math.floor((timeMs%60000)/1000)).padStart(2,'0');
-          timeStr = `${h}:${m}:${s}`;
-        }
-      }
-      return { dossard, timeMs, timeStr, ...participant };
-    });
+  const departCourses = departSnap.val() || {};
+  const participants = partSnap.val() || {};
+  const scans = scanSnap.val() || {};
 
-    // Calculer positions Scratch, Genre, Cat
-    const scratch = {}, genrePos = {}, catPos = {};
-    const courseCounts = {};
-    scanData.forEach(p => {
-      courseCounts[p.course] = (courseCounts[p.course]||0)+1;
-      scratch[p.dossard] = courseCounts[p.course];
-
-      const keyG = p.course+"_"+p.genre;
-      genrePos[keyG] = genrePos[keyG] || 0;
-      genrePos[keyG]++;
-      p.posGenre = genrePos[keyG];
-
-      const keyC = p.course+"_"+p.categorie;
-      catPos[keyC] = catPos[keyC] || 0;
-      catPos[keyC]++;
-      p.posCat = catPos[keyC];
-
-      p.scratch = scratch[p.dossard];
-    });
-
-    renderTable();
-  }
-
-  function renderTable() {
-    const tbody = document.querySelector("#classement tbody");
-    tbody.innerHTML = "";
-    // Tri selon configuration
-    const sorted = [...scanData].sort((a,b) => {
-      let vA = a[sortConfig.key];
-      let vB = b[sortConfig.key];
-      if(typeof vA==='string') vA=vA.toLowerCase();
-      if(typeof vB==='string') vB=vB.toLowerCase();
-      if(vA < vB) return sortConfig.direction==="asc" ? -1 : 1;
-      if(vA > vB) return sortConfig.direction==="asc" ? 1 : -1;
-      return 0;
-    });
-    sorted.forEach(p => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${p.dossard}</td>
-        <td>${p.nom||""}</td>
-        <td>${p.prenom||""}</td>
-        <td>${p.timeStr}</td>
-        <td>${p.course||""}</td>
-        <td>${p.scratch}</td>
-        <td>${p.genre||""}</td>
-        <td>${p.posGenre}</td>
-        <td>${p.categorie||""}</td>
-        <td>${p.posCat}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // --- Tri au clic ---
-  document.querySelectorAll("th").forEach(th => {
-    th.addEventListener("click", () => {
-      const key = th.textContent.replace(/\s/g,'');
-      if(sortConfig.key===key) {
-        sortConfig.direction = sortConfig.direction==="asc"?"desc":"asc";
-      } else {
-        sortConfig.key = key;
-        sortConfig.direction="asc";
-      }
-      document.querySelectorAll("th").forEach(h=>h.classList.remove("asc","desc"));
-      th.classList.add(sortConfig.direction);
-      renderTable();
-    });
+  scanData = Object.entries(scans).map(([dossard, data]) => {
+    const participant = participants[dossard] || {};
+    const departISO = departCourses[participant.course] || null;
+    const timeStr = getTimeStr(data.dateTime, departISO);
+    const timeMs = departISO ? new Date(data.dateTime) - new Date(departISO) : 0;
+    return { dossard, timeMs, timeStr, ...participant };
   });
 
-  fetchData();
-  setInterval(fetchData, 5000); // refresh live
+  // Calculer positions Scratch, Genre, Cat
+  const scratchCounter = {};
+  const genreCounter = {};
+  const catCounter = {};
+  scanData.forEach(p => {
+    scratchCounter[p.course] = scratchCounter[p.course]||0;
+    scratchCounter[p.course]++;
+    p.scratch = scratchCounter[p.course];
+
+    const keyG = p.course+"_"+p.genre;
+    genreCounter[keyG] = genreCounter[keyG]||0;
+    genreCounter[keyG]++;
+    p.posGenre = genreCounter[keyG];
+
+    const keyC = p.course+"_"+p.categorie;
+    catCounter[keyC] = catCounter[keyC]||0;
+    catCounter[keyC]++;
+    p.posCat = catCounter[keyC];
+  });
+
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.querySelector("#classement tbody");
+  tbody.innerHTML = "";
+  const sorted = [...scanData].sort((a,b) => {
+    let vA = a[sortConfig.key];
+    let vB = b[sortConfig.key];
+    if(typeof vA==='string') vA=vA.toLowerCase();
+    if(typeof vB==='string') vB=vB.toLowerCase();
+    if(vA < vB) return sortConfig.direction==="asc"?-1:1;
+    if(vA > vB) return sortConfig.direction==="asc"?1:-1;
+    return 0;
+  });
+
+  sorted.forEach((p,i) => {
+    const tr = document.createElement("tr");
+    if(i===0) tr.classList.add("top1");
+    else if(i===1) tr.classList.add("top2");
+    else if(i===2) tr.classList.add("top3");
+    tr.innerHTML = `
+      <td>${p.dossard}</td>
+      <td>${p.nom||""}</td>
+      <td>${p.prenom||""}</td>
+      <td>${p.timeStr}</td>
+      <td>${p.course||""}</td>
+      <td>${p.scratch}</td>
+      <td>${p.genre||""}</td>
+      <td>${p.posGenre}</td>
+      <td>${p.categorie||""}</td>
+      <td>${p.posCat}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Tri au clic
+document.querySelectorAll("th").forEach(th => {
+  th.addEventListener("click", () => {
+    const keyMap = {
+      "Dossard":"dossard","Nom":"nom","Prénom":"prenom",
+      "Temps":"timeMs","Course":"course","Scratch":"scratch",
+      "Genre":"genre","Pos. Genre":"posGenre","CAT":"categorie","Pos. CAT":"posCat"
+    };
+    const key = keyMap[th.textContent.trim()];
+    if(sortConfig.key===key) sortConfig.direction = sortConfig.direction==="asc"?"desc":"asc";
+    else { sortConfig.key = key; sortConfig.direction="asc"; }
+    document.querySelectorAll("th").forEach(h=>h.classList.remove("asc","desc"));
+    th.classList.add(sortConfig.direction);
+    renderTable();
+  });
+});
+
+// Rafraîchissement live toutes les 5s
+fetchData();
+setInterval(fetchData,5000);
 </script>
 </body>
 </html>
