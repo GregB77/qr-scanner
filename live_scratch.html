@@ -18,7 +18,6 @@
 <body>
   <h1>Classement Course</h1>
   <div id="counters">Chargement...</div>
-
   <table id="classement">
     <thead>
       <tr>
@@ -38,6 +37,7 @@
   </table>
 
   <script>
+    // --- Config Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
       authDomain: "calor-run.firebaseapp.com",
@@ -45,19 +45,19 @@
       projectId: "calor-run",
       storageBucket: "calor-run.firebasestorage.app",
       messagingSenderId: "329949291334",
-      appId: "1:329949291334:web:c71ef20268c609cf953b47",
-      measurementId: "G-YVQPW6JGPK"
+      appId: "1:329949291334:web:c71ef20268c609cf953b47"
     };
 
+    // --- Initialisation ---
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Heure de départ (9h00)
+    // Heure de départ 9h00
     const departureTime = new Date();
-    departureTime.setHours(9,0,0,0); 
+    departureTime.setHours(9,0,0,0);
     const departureTimestamp = departureTime.getTime();
 
-    // Compteurs
+    // Compteurs pour Scratch/Genre/CAT
     const scratchCounter = {};
     const genreCounter = {};
     const catCounter = {};
@@ -66,58 +66,61 @@
     const tbody = document.querySelector("#classement tbody");
     const countersDiv = document.getElementById("counters");
 
-    // Charger les participants une seule fois
+    // --- Charger participants ---
     let participants = {};
     db.ref('participants').once('value').then(snap => {
       participants = snap.val() || {};
-    });
 
-    // Ecoute en temps réel des scans
-    db.ref('scan_dossards').on('child_added', snap => {
-      const dossard = snap.key;
-      const scan = snap.val();
-      const participant = participants[dossard] || {};
+      // --- Écoute en temps réel des scans ---
+      db.ref('scan_dossards').on('child_added', snap => {
+        const dossard = snap.key;
+        const scan = snap.val();
+        const participant = participants[dossard] || {};
 
-      const scanTime = new Date(scan.dateTime).getTime();
-      const tempsMs = scanTime - departureTimestamp;
-      const tempsSec = Math.floor(tempsMs / 1000);
-      const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
-      const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
-      const s = (tempsSec % 60).toString().padStart(2,'0');
-      const tempsStr = `${h}:${m}:${s}`;
+        const scanTime = new Date(scan.dateTime).getTime();
+        const tempsMs = scanTime - departureTimestamp;
+        const tempsSec = Math.floor(tempsMs / 1000);
+        const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
+        const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
+        const s = (tempsSec % 60).toString().padStart(2,'0');
+        const tempsStr = `${h}:${m}:${s}`;
 
-      // Mise à jour des compteurs
-      const course = participant.course || '';
-      scratchCounter[course] = (scratchCounter[course] || 0) + 1;
-      const scratch = scratchCounter[course];
+        // Scratch
+        const course = participant.course || '';
+        scratchCounter[course] = (scratchCounter[course] || 0) + 1;
+        const scratch = scratchCounter[course];
 
-      const keyGenre = `${course}_${participant.genre || ''}`;
-      genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
-      const posGenre = genreCounter[keyGenre];
+        // Genre
+        const keyGenre = `${course}_${participant.genre || ''}`;
+        genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
+        const posGenre = genreCounter[keyGenre];
 
-      const keyCat = `${course}_${participant.categorie || ''}`;
-      catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
-      const posCat = catCounter[keyCat];
+        // Catégorie
+        const keyCat = `${course}_${participant.categorie || ''}`;
+        catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
+        const posCat = catCounter[keyCat];
 
-      if (course.includes("10")) count10++;
-      if (course.includes("20")) count20++;
-      countersDiv.textContent = `10 km : ${count10} arrivés | 20 km : ${count20} arrivés`;
+        // Compteurs par course
+        if (course.includes("10")) count10++;
+        if (course.includes("20")) count20++;
+        countersDiv.textContent = `10 km : ${count10} arrivés | 20 km : ${count20} arrivés`;
 
-      // Ajout en haut du tableau
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${dossard}</td>
-        <td>${participant.nom || ''}</td>
-        <td>${participant.prenom || ''}</td>
-        <td>${tempsStr}</td>
-        <td>${course}</td>
-        <td>${scratch}</td>
-        <td>${participant.genre || ''}</td>
-        <td>${posGenre}</td>
-        <td>${participant.categorie || ''}</td>
-        <td>${posCat}</td>
-      `;
-      tbody.insertBefore(tr, tbody.firstChild);
+        // Ajout ligne tableau en haut
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${dossard}</td>
+          <td>${participant.nom || ''}</td>
+          <td>${participant.prenom || ''}</td>
+          <td>${tempsStr}</td>
+          <td>${course}</td>
+          <td>${scratch}</td>
+          <td>${participant.genre || ''}</td>
+          <td>${posGenre}</td>
+          <td>${participant.categorie || ''}</td>
+          <td>${posCat}</td>
+        `;
+        tbody.insertBefore(tr, tbody.firstChild);
+      });
     });
   </script>
 </body>
