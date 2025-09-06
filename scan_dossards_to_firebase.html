@@ -19,7 +19,7 @@
     }
     #reader { 
       width: 100%; 
-      max-width: 400px; 
+      max-width: 800px; 
       margin: 0 auto 20px auto; 
       border: 3px solid #333; 
       border-radius: 12px;
@@ -97,7 +97,7 @@
     }
 
     // --- Charger les scans existants ---
-    database.ref('scans_dossards').once('value', snapshot => {
+    database.ref('scan_dossards').once('value', snapshot => {
       snapshot.forEach(childSnapshot => {
         const code = childSnapshot.key;
         scannedCodes.add(code);
@@ -115,7 +115,7 @@
 
       if (scannedCodes.has(qrCodeValue)) return; // doublon → ignore
 
-      const entryRef = database.ref('scans_dossards/' + qrCodeValue);
+      const entryRef = database.ref('scan_dossards/' + qrCodeValue);
 
       entryRef.once("value", snapshot => {
         if (!snapshot.exists()) {
@@ -160,7 +160,7 @@
         const rearCamera = cameras.find(c => c.label.toLowerCase().includes("back")) || cameras[0];
         html5QrCode.start(
           rearCamera.id,
-          { fps: 10, qrbox: { width: 300, height: 300 } },
+          { fps: 10, qrbox: { width: 500, height: 500 } },
           qrCodeMessage => sendToFirebase(qrCodeMessage),
           errorMessage => {} // ignore erreurs
         );
