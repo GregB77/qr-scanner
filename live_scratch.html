@@ -49,81 +49,85 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Heure de départ (9h00) au format timestamp
-    const departureTime = new Date();
-    departureTime.setHours(9,0,0,0); // 9h00 aujourd'hui
-    const departureTimestamp = departureTime.getTime();
+    // Charger l'heure de départ depuis Firebase
+    db.ref('data/depart_course').once('value').then(depSnap => {
+      if (!depSnap.exists()) {
+        alert("Heure de départ manquante");
+        return;
+      }
 
-    // --- Charger les deux tables ---
-    Promise.all([
-      db.ref('scan_dossards').once('value'),
-      db.ref('participants').once('value')
-    ]).then(([scanSnap, participantsSnap]) => {
-      const participants = participantsSnap.val() || {};
-      const scans = scanSnap.val() || {};
+      const departureTimestamp = new Date(depSnap.val()).getTime();
 
-      // On transforme en tableau
-      let classement = Object.keys(scans).map(dossard => {
-        const scan = scans[dossard];
-        const participant = participants[dossard] || {};
-        const tempsMs = scan.dateTime - departureTimestamp;
-        const tempsSec = Math.floor(tempsMs / 1000);
-        const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
-        const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
-        const s = (tempsSec % 60).toString().padStart(2,'0');
-        return {
-          dossard,
-          nom: participant.nom || '',
-          prenom: participant.prenom || '',
-          tempsMs,
-          tempsStr: `${h}:${m}:${s}`,
-          course: participant.course || '',
-          genre: participant.genre || '',
-          categorie: participant.categorie || ''
-        };
-      });
+      // Charger les deux tables
+      Promise.all([
+        db.ref('scan_dossards').once('value'),
+        db.ref('participants').once('value')
+      ]).then(([scanSnap, participantsSnap]) => {
+        const participants = participantsSnap.val() || {};
+        const scans = scanSnap.val() || {};
 
-      // --- Trier par course et temps ---
-      classement.sort((a,b) => a.tempsMs - b.tempsMs); // premier arrivé en haut
+        let classement = Object.keys(scans).map(dossard => {
+          const scan = scans[dossard];
+          const participant = participants[dossard] || {};
+          const scanTimestamp = new Date(scan.dateTime).getTime();
+          const tempsMs = scanTimestamp - departureTimestamp;
 
-      // --- Calculer Scratch / Pos Genre / Pos CAT ---
-      const scratchCounter = {}; // course => compteur
-      const genreCounter = {};   // course_genre => compteur
-      const catCounter = {};     // course_categorie => compteur
+          const tempsSec = Math.floor(tempsMs / 1000);
+          const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
+          const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
+          const s = (tempsSec % 60).toString().padStart(2,'0');
 
-      classement.forEach(p => {
-        // Scratch général par course
-        scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
-        p.scratch = scratchCounter[p.course];
+          return {
+            dossard,
+            nom: participant.nom || '',
+            prenom: participant.prenom || '',
+            tempsMs,
+            tempsStr: `${h}:${m}:${s}`,
+            course: participant.course || '',
+            genre: participant.genre || '',
+            categorie: participant.categorie || ''
+          };
+        });
 
-        // Pos. Genre
-        const keyGenre = `${p.course}_${p.genre}`;
-        genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
-        p.posGenre = genreCounter[keyGenre];
+        // Trier par temps croissant
+        classement.sort((a,b) => a.tempsMs - b.tempsMs);
 
-        // Pos. CAT
-        const keyCat = `${p.course}_${p.categorie}`;
-        catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
-        p.posCat = catCounter[keyCat];
-      });
+        // Calculer Scratch / Pos Genre / Pos CAT
+        const scratchCounter = {};
+        const genreCounter = {};
+        const catCounter = {};
 
-      // --- Affichage tableau ---
-      const tbody = document.querySelector("#classement tbody");
-      classement.forEach(p => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${p.dossard}</td>
-          <td>${p.nom}</td>
-          <td>${p.prenom}</td>
-          <td>${p.tempsStr}</td>
-          <td>${p.course}</td>
-          <td>${p.scratch}</td>
-          <td>${p.genre}</td>
-          <td>${p.posGenre}</td>
-          <td>${p.categorie}</td>
-          <td>${p.posCat}</td>
-        `;
-        tbody.appendChild(tr);
+        classement.forEach(p => {
+          scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
+          p.scratch = scratchCounter[p.course];
+
+          const keyGenre = `${p.course}_${p.genre}`;
+          genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
+          p.posGenre = genreCounter[keyGenre];
+
+          const keyCat = `${p.course}_${p.categorie}`;
+          catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
+          p.posCat = catCounter[keyCat];
+        });
+
+        // Affichage tableau
+        const tbody = document.querySelector("#classement tbody");
+        classement.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${p.dossard}</td>
+            <td>${p.nom}</td>
+            <td>${p.prenom}</td>
+            <td>${p.tempsStr}</td>
+            <td>${p.course}</td>
+            <td>${p.scratch}</td>
+            <td>${p.genre}</td>
+            <td>${p.posGenre}</td>
+            <td>${p.categorie}</td>
+            <td>${p.posCat}</td>
+          `;
+          tbody.appendChild(tr);
+        });
       });
     });
   </script>
