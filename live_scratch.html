@@ -196,17 +196,19 @@
 
     // Fonction pour créer une ligne du tableau
     function createTableRow(participant) {
+      const courseBadge = `<span class="course-badge course-${participant.course}">${participant.course}km</span>`;
+      
       return `
-        <td>${participant.dossard}</td>
+        <td><strong>${participant.dossard}</strong></td>
         <td>${participant.nom}</td>
         <td>${participant.prenom}</td>
-        <td>${participant.tempsStr}</td>
-        <td>${participant.course}</td>
-        <td>${participant.scratch}</td>
+        <td><span class="time">${participant.tempsStr}</span></td>
+        <td>${courseBadge}</td>
+        <td><span class="position">${participant.scratch}</span></td>
         <td>${participant.genre}</td>
-        <td>${participant.posGenre}</td>
+        <td><span class="position">${participant.posGenre}</span></td>
         <td>${participant.categorie}</td>
-        <td>${participant.posCat}</td>
+        <td><span class="position">${participant.posCat}</span></td>
       `;
     }
 
