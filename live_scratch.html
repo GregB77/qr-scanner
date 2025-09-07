@@ -13,374 +13,137 @@
       padding: 0;
     }
     
-    :root {
-      --primary: #1a73e8;
-      --primary-dark: #1557b0;
-      --secondary: #34a853;
-      --accent: #fbbc04;
-      --surface: #ffffff;
-      --background: #f8f9fa;
-      --on-surface: #202124;
-      --on-surface-variant: #5f6368;
-      --outline: #dadce0;
-      --shadow: 0 2px 10px rgba(0,0,0,0.1);
-      --shadow-elevated: 0 8px 25px rgba(0,0,0,0.15);
-    }
-    
     body {
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-      color: var(--on-surface);
-    }
-    
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      background: var(--surface);
-      border-radius: 24px;
-      box-shadow: var(--shadow-elevated);
-      overflow: hidden;
-    }
-    
-    .header {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      color: white;
-      padding: 40px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .header::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
-      animation: float 20s linear infinite;
-      z-index: 1;
-    }
-    
-    @keyframes float {
-      0% { transform: translate(-50%, -50%) rotate(0deg); }
-      100% { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-    
-    .header > * {
-      position: relative;
-      z-index: 2;
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+      line-height: 1.4;
     }
     
     h1 {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      font-weight: 700;
-      margin-bottom: 10px;
-      letter-spacing: -0.02em;
-    }
-    
-    .subtitle {
-      font-size: 1.1rem;
-      opacity: 0.9;
-      font-weight: 300;
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
     }
     
     .loading {
       text-align: center;
-      padding: 60px 40px;
-      color: var(--on-surface-variant);
+      font-size: 1.2rem;
+      color: #666;
+      margin: 40px 0;
     }
     
-    .loading-spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid var(--outline);
-      border-top: 4px solid var(--primary);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    .stats {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      padding: 30px 40px;
-      background: var(--background);
-      border-bottom: 1px solid var(--outline);
-      flex-wrap: wrap;
-    }
-    
-    .stat-card {
-      background: var(--surface);
-      padding: 20px 30px;
-      border-radius: 16px;
-      box-shadow: var(--shadow);
+    .compteurs {
       text-align: center;
-      min-width: 160px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      border: 2px solid transparent;
-    }
-    
-    .stat-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-elevated);
-    }
-    
-    .stat-card.course-10 {
-      border-color: var(--secondary);
-    }
-    
-    .stat-card.course-20 {
-      border-color: var(--accent);
-    }
-    
-    .stat-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-    
-    .stat-card.course-10 .stat-number {
-      color: var(--secondary);
-    }
-    
-    .stat-card.course-20 .stat-number {
-      color: #f57c00;
-    }
-    
-    .stat-label {
-      color: var(--on-surface-variant);
-      font-size: 0.9rem;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .table-section {
-      padding: 40px;
-    }
-    
-    .table-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       margin-bottom: 30px;
-      flex-wrap: wrap;
-      gap: 20px;
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      font-weight: bold;
     }
     
-    .table-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--on-surface);
-    }
-    
-    .sort-controls {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    
-    .sort-btn {
-      padding: 8px 16px;
-      border: 2px solid var(--outline);
-      background: var(--surface);
-      color: var(--on-surface);
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-    
-    .sort-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    
-    .sort-btn.active {
-      background: var(--primary);
+    .compteur {
+      display: inline-block;
+      margin: 5px 10px;
+      padding: 10px 15px;
+      background: #0077cc;
       color: white;
-      border-color: var(--primary);
+      border-radius: 5px;
+      min-width: 120px;
     }
     
     .table-container {
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: var(--shadow);
-      border: 1px solid var(--outline);
+      overflow-x: auto;
+      margin-bottom: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
     table {
       width: 100%;
       border-collapse: collapse;
-      background: var(--surface);
+      background: white;
+      min-width: 800px;
+    }
+    
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+      font-size: 0.9rem;
     }
     
     th {
-      background: var(--primary);
-      color: white;
-      padding: 16px 12px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      background: #0077cc;
+      color: #fff;
+      font-weight: bold;
       position: sticky;
       top: 0;
       z-index: 10;
-      border-bottom: 2px solid var(--primary-dark);
     }
     
-    td {
-      padding: 16px 12px;
-      font-size: 0.9rem;
-      border-bottom: 1px solid var(--outline);
-      transition: background-color 0.2s ease;
+    tbody tr:nth-child(even) {
+      background: #f8f9fa;
     }
     
     tbody tr:hover {
       background: #e3f2fd;
     }
     
-    tbody tr:nth-child(odd) {
-      background: var(--background);
-    }
-    
-    .position-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      font-weight: 700;
-      font-size: 0.8rem;
-      color: white;
-    }
-    
-    .position-1 { background: #ffd700; color: #333; }
-    .position-2 { background: #c0c0c0; color: #333; }
-    .position-3 { background: #cd7f32; color: white; }
-    .position-default { background: var(--on-surface-variant); }
-    
-    .course-badge {
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: white;
-    }
-    
-    .course-10 { background: var(--secondary); }
-    .course-20 { background: #f57c00; }
-    
-    .time {
-      font-family: 'Courier New', monospace;
-      font-weight: 700;
-      font-size: 1rem;
-      color: var(--primary);
-    }
-    
     .error {
       text-align: center;
       color: #d32f2f;
+      font-weight: bold;
+      margin: 40px 0;
+      padding: 20px;
       background: #ffebee;
-      padding: 40px;
-      border-radius: 16px;
-      margin: 40px;
-      border: 1px solid #ffcdd2;
-    }
-    
-    .error-icon {
-      font-size: 3rem;
-      margin-bottom: 20px;
+      border-radius: 8px;
     }
     
     @media (max-width: 768px) {
-      body { padding: 10px; }
-      .header { padding: 30px 20px; }
-      .stats { padding: 20px; gap: 15px; }
-      .stat-card { min-width: 140px; padding: 15px 20px; }
-      .stat-number { font-size: 2rem; }
-      .table-section { padding: 20px; }
-      th, td { padding: 12px 8px; font-size: 0.8rem; }
-      .table-header { flex-direction: column; text-align: center; }
-      .sort-controls { justify-content: center; }
-    }
-    
-    @media (max-width: 480px) {
-      .stats { flex-direction: column; align-items: center; }
-      .stat-card { width: 100%; max-width: 200px; }
-      th, td { padding: 10px 6px; }
-      .container { border-radius: 16px; }
+      body { margin: 10px; }
+      .compteur {
+        display: block;
+        margin: 5px auto;
+        max-width: 200px;
+      }
+      th, td { padding: 6px; font-size: 0.8rem; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>🏃‍♂️ Classement Course</h1>
-      <div class="subtitle">Résultats en temps réel</div>
+  <h1>Classement Course</h1>
+  
+  <div id="loading" class="loading">Chargement des données...</div>
+  
+  <div id="compteurs" class="compteurs" style="display: none;">
+    <div class="compteur">
+      Course 10km : <span id="count-10">0</span> arrivés
     </div>
-    
-    <div id="loading" class="loading">
-      <div class="loading-spinner"></div>
-      <div>Chargement des résultats...</div>
-    </div>
-    
-    <div id="stats" class="stats" style="display: none;">
-      <div class="stat-card course-10">
-        <div class="stat-number" id="count-10">0</div>
-        <div class="stat-label">Course 10km</div>
-      </div>
-      <div class="stat-card course-20">
-        <div class="stat-number" id="count-20">0</div>
-        <div class="stat-label">Course 20km</div>
-      </div>
-    </div>
-
-    <div class="table-section" id="table-section" style="display: none;">
-      <div class="table-header">
-        <div class="table-title">🏆 Résultats</div>
-        <div class="sort-controls">
-          <button class="sort-btn active" id="sort-asc">⚡ Plus rapides</button>
-          <button class="sort-btn" id="sort-desc">🕐 Plus récents</button>
-        </div>
-      </div>
-      
-      <div class="table-container">
-        <table id="classement">
-          <thead>
-            <tr>
-              <th>Position</th>
-              <th>Dossard</th>
-              <th>Nom</th>
-              <th>Prénom</th>
-              <th>Temps</th>
-              <th>Course</th>
-              <th>Genre</th>
-              <th>Catégorie</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div id="error" class="error" style="display: none;">
-      <div class="error-icon">⚠️</div>
-      <div id="error-message"></div>
+    <div class="compteur">
+      Course 20km : <span id="count-20">0</span> arrivés
     </div>
   </div>
+
+  <div class="table-container" id="table-container" style="display: none;">
+    <table id="classement">
+      <thead>
+        <tr>
+          <th>Dossard</th>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Temps</th>
+          <th>Course</th>
+          <th>Scratch</th>
+          <th>Genre</th>
+          <th>Pos. Genre</th>
+          <th>CAT</th>
+          <th>Pos. CAT</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="error" class="error" style="display: none;"></div>
 
   <script>
     // Configuration Firebase
@@ -395,24 +158,20 @@
       measurementId: "G-YVQPW6JGPK"
     };
 
-    // Variables globales
+    // Cache pour éviter les recalculs
     let cachedClassement = null;
     let lastUpdateTime = 0;
-    let currentSort = 'asc'; // 'asc' = plus rapides, 'desc' = plus récents
-    const CACHE_DURATION = 30000;
+    const CACHE_DURATION = 30000; // 30 secondes
 
     // Éléments DOM
     const elements = {
       loading: document.getElementById('loading'),
-      stats: document.getElementById('stats'),
-      tableSection: document.getElementById('table-section'),
+      compteurs: document.getElementById('compteurs'),
+      tableContainer: document.getElementById('table-container'),
       error: document.getElementById('error'),
-      errorMessage: document.getElementById('error-message'),
       count10: document.getElementById('count-10'),
       count20: document.getElementById('count-20'),
-      tbody: document.querySelector('#classement tbody'),
-      sortAsc: document.getElementById('sort-asc'),
-      sortDesc: document.getElementById('sort-desc')
+      tbody: document.querySelector('#classement tbody')
     };
 
     // Initialisation Firebase
@@ -428,111 +187,99 @@
       return `${h}:${m}:${s}`;
     }
 
-    // Fonction pour créer le badge de position
-    function createPositionBadge(position) {
-      let className = 'position-default';
-      if (position === 1) className = 'position-1';
-      else if (position === 2) className = 'position-2';
-      else if (position === 3) className = 'position-3';
-      
-      return `<div class="position-badge ${className}">${position}</div>`;
-    }
-
     // Fonction pour afficher les erreurs
     function showError(message) {
       elements.loading.style.display = 'none';
-      elements.stats.style.display = 'none';
-      elements.tableSection.style.display = 'none';
-      elements.errorMessage.textContent = message;
+      elements.error.textContent = message;
       elements.error.style.display = 'block';
     }
 
     // Fonction pour créer une ligne du tableau
-    function createTableRow(participant, index) {
-      const courseBadge = `<span class="course-badge course-${participant.course}">${participant.course}km</span>`;
-      
+    function createTableRow(participant) {
       return `
-        <td>${createPositionBadge(index + 1)}</td>
-        <td><strong>${participant.dossard}</strong></td>
+        <td>${participant.dossard}</td>
         <td>${participant.nom}</td>
         <td>${participant.prenom}</td>
-        <td><span class="time">${participant.tempsStr}</span></td>
-        <td>${courseBadge}</td>
+        <td>${participant.tempsStr}</td>
+        <td>${participant.course}</td>
+        <td>${participant.scratch}</td>
         <td>${participant.genre}</td>
+        <td>${participant.posGenre}</td>
         <td>${participant.categorie}</td>
+        <td>${participant.posCat}</td>
       `;
     }
 
-    // Fonction pour trier les données
-    function sortClassement(classement, sortType) {
-      return [...classement].sort((a, b) => {
-        if (sortType === 'asc') {
-          return a.tempsMs - b.tempsMs; // Plus rapides en premier
-        } else {
-          return b.tempsMs - a.tempsMs; // Plus lents en premier (plus récents)
-        }
-      });
-    }
-
-    // Fonction pour calculer les compteurs
-    function calculateCounters(classement) {
+    // Fonction pour calculer les positions et compteurs
+    function calculatePositions(classement) {
+      const scratchCounter = {};
+      const genreCounter = {};
+      const catCounter = {};
       let count10 = 0;
       let count20 = 0;
-      
+
       classement.forEach(p => {
+        // Compter par course
         if (p.course === '10') count10++;
         else if (p.course === '20') count20++;
+
+        // Calculer les positions
+        scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
+        p.scratch = scratchCounter[p.course];
+
+        const keyGenre = `${p.course}_${p.genre}`;
+        genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
+        p.posGenre = genreCounter[keyGenre];
+
+        const keyCat = `${p.course}_${p.categorie}`;
+        catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
+        p.posCat = catCounter[keyCat];
       });
 
       return { count10, count20 };
     }
 
     // Fonction pour afficher les données
-    function displayData(classement) {
-      const { count10, count20 } = calculateCounters(classement);
-      const sortedClassement = sortClassement(classement, currentSort);
+    function displayData(classement, count10, count20) {
+      // Mise à jour des compteurs
+      elements.count10.textContent = count10;
+      elements.count20.textContent = count20;
 
-      // Mise à jour des compteurs avec animation
-      elements.count10.style.transform = 'scale(1.2)';
-      elements.count20.style.transform = 'scale(1.2)';
-      
-      setTimeout(() => {
-        elements.count10.textContent = count10;
-        elements.count20.textContent = count20;
-        elements.count10.style.transform = 'scale(1)';
-        elements.count20.style.transform = 'scale(1)';
-      }, 150);
-
-      // Génération du tableau
+      // Génération du tableau par fragments
       const fragment = document.createDocumentFragment();
       
-      sortedClassement.forEach((p, index) => {
+      classement.forEach(p => {
         const tr = document.createElement('tr');
-        tr.innerHTML = createTableRow(p, index);
+        tr.innerHTML = createTableRow(p);
         fragment.appendChild(tr);
       });
 
-      // Mise à jour du DOM
+      // Mise à jour du DOM en une seule fois
       elements.tbody.innerHTML = '';
       elements.tbody.appendChild(fragment);
 
-      // Affichage des éléments
+      // Affichage des éléments (masquer le loading et afficher les compteurs et tableau)
       elements.loading.style.display = 'none';
       elements.error.style.display = 'none';
-      elements.stats.style.display = 'flex';
-      elements.tableSection.style.display = 'block';
+      elements.compteurs.style.display = 'block';
+      elements.tableContainer.style.display = 'block';
+      
+      console.log(`Compteurs mis à jour: Course 10km: ${count10}, Course 20km: ${count20}`);
     }
 
-    // Fonction principale de chargement
+    // Fonction principale de chargement des données
     async function loadData() {
       const now = Date.now();
       
+      // Vérifier le cache
       if (cachedClassement && (now - lastUpdateTime) < CACHE_DURATION) {
-        displayData(cachedClassement);
+        const { classement, count10, count20 } = cachedClassement;
+        displayData(classement, count10, count20);
         return;
       }
 
       try {
+        // Chargement parallèle des données
         const [depSnap, scanSnap, participantsSnap] = await Promise.all([
           db.ref('data/depart_course').once('value'),
           db.ref('scan_dossards').once('value'),
@@ -547,6 +294,7 @@
         const participants = participantsSnap.val() || {};
         const scans = scanSnap.val() || {};
 
+        // Construction du classement
         const classement = Object.keys(scans)
           .map(dossard => {
             const scan = scans[dossard];
@@ -564,39 +312,36 @@
               genre: participant.genre || '',
               categorie: participant.categorie || ''
             };
-          });
+          })
+          .sort((a, b) => a.tempsMs - b.tempsMs);
 
-        cachedClassement = classement;
+        // Calcul des positions
+        const { count10, count20 } = calculatePositions(classement);
+
+        // Mise en cache
+        cachedClassement = { classement, count10, count20 };
         lastUpdateTime = now;
-        displayData(classement);
+
+        // Affichage
+        displayData(classement, count10, count20);
 
       } catch (error) {
-        console.error('Erreur:', error);
+        console.error('Erreur lors du chargement:', error);
         showError(`Erreur: ${error.message}`);
       }
     }
 
-    // Gestion des boutons de tri
-    elements.sortAsc.addEventListener('click', () => {
-      currentSort = 'asc';
-      elements.sortAsc.classList.add('active');
-      elements.sortDesc.classList.remove('active');
-      if (cachedClassement) displayData(cachedClassement);
-    });
-
-    elements.sortDesc.addEventListener('click', () => {
-      currentSort = 'desc';
-      elements.sortDesc.classList.add('active');
-      elements.sortAsc.classList.remove('active');
-      if (cachedClassement) displayData(cachedClassement);
-    });
-
     // Initialisation
     document.addEventListener('DOMContentLoaded', loadData);
+
+    // Auto-refresh toutes les 30 secondes
     setInterval(loadData, 30000);
-    
+
+    // Refresh manuel au focus de la page
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) loadData();
+      if (!document.hidden) {
+        loadData();
+      }
     });
   </script>
 </body>
