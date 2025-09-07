@@ -55,7 +55,7 @@
     const db = firebase.database();
 
     // --- Récupérer l'heure de départ depuis Firebase ---
-    db.ref('depart_courses').once('value').then(depSnap => {
+    db.ref('depart_course').once('value').then(depSnap => {
       const departureTimestamp = depSnap.val(); // doit être en ms (Date.now()) ou ISO converti
 
       Promise.all([
