@@ -258,10 +258,13 @@
       elements.tbody.innerHTML = '';
       elements.tbody.appendChild(fragment);
 
-      // Affichage des éléments
+      // Affichage des éléments (masquer le loading et afficher les compteurs et tableau)
       elements.loading.style.display = 'none';
+      elements.error.style.display = 'none';
       elements.compteurs.style.display = 'block';
       elements.tableContainer.style.display = 'block';
+      
+      console.log(`Compteurs mis à jour: Course 10km: ${count10}, Course 20km: ${count20}`);
     }
 
     // Fonction principale de chargement des données
