@@ -7,20 +7,15 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
-    h1 { text-align: center; margin-bottom: 10px; }
-    #counters { text-align: center; font-size: 1.2em; margin-bottom: 20px; }
+    h1 { text-align: center; margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #0077cc; color: #fff; cursor: pointer; }
+    th { background: #0077cc; color: #fff; }
     tbody tr:nth-child(even) { background: #f2f2f2; }
   </style>
 </head>
 <body>
   <h1>Classement Course</h1>
-  <div id="counters">
-    Arrivés 10 km : <span id="count10">0</span> | 
-    Arrivés 20 km : <span id="count20">0</span>
-  </div>
   <table id="classement">
     <thead>
       <tr>
@@ -54,10 +49,16 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- Récupérer l'heure de départ depuis Firebase ---
-    db.ref('depart_course').once('value').then(depSnap => {
-      const departureTimestamp = depSnap.val(); // doit être en ms (Date.now()) ou ISO converti
+    // Charger l'heure de départ depuis Firebase
+    db.ref('data/depart_course').once('value').then(depSnap => {
+      if (!depSnap.exists()) {
+        alert("Heure de départ manquante");
+        return;
+      }
 
+      const departureTimestamp = new Date(depSnap.val()).getTime();
+
+      // Charger les deux tables
       Promise.all([
         db.ref('scan_dossards').once('value'),
         db.ref('participants').once('value')
@@ -65,25 +66,16 @@
         const participants = participantsSnap.val() || {};
         const scans = scanSnap.val() || {};
 
-        let count10 = 0, count20 = 0;
-
-        // Construire le classement
         let classement = Object.keys(scans).map(dossard => {
           const scan = scans[dossard];
           const participant = participants[dossard] || {};
-
           const scanTimestamp = new Date(scan.dateTime).getTime();
-          let tempsMs = scanTimestamp - departureTimestamp;
-          if (tempsMs < 0) tempsMs = 0; // Sécurité
+          const tempsMs = scanTimestamp - departureTimestamp;
 
           const tempsSec = Math.floor(tempsMs / 1000);
           const h = Math.floor(tempsSec / 3600).toString().padStart(2,'0');
           const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2,'0');
           const s = (tempsSec % 60).toString().padStart(2,'0');
-
-          // Compteurs par course
-          if (participant.course === "10") count10++;
-          if (participant.course === "20") count20++;
 
           return {
             dossard,
@@ -97,35 +89,28 @@
           };
         });
 
-        // Trier par temps
+        // Trier par temps croissant
         classement.sort((a,b) => a.tempsMs - b.tempsMs);
 
-        // --- Calculer Scratch / Pos Genre / Pos CAT ---
+        // Calculer Scratch / Pos Genre / Pos CAT
         const scratchCounter = {};
         const genreCounter = {};
         const catCounter = {};
 
         classement.forEach(p => {
-          // Scratch
           scratchCounter[p.course] = (scratchCounter[p.course] || 0) + 1;
           p.scratch = scratchCounter[p.course];
 
-          // Genre
           const keyGenre = `${p.course}_${p.genre}`;
           genreCounter[keyGenre] = (genreCounter[keyGenre] || 0) + 1;
           p.posGenre = genreCounter[keyGenre];
 
-          // Catégorie
           const keyCat = `${p.course}_${p.categorie}`;
           catCounter[keyCat] = (catCounter[keyCat] || 0) + 1;
           p.posCat = catCounter[keyCat];
         });
 
-        // Afficher compteurs
-        document.getElementById("count10").innerText = count10;
-        document.getElementById("count20").innerText = count20;
-
-        // Afficher tableau
+        // Affichage tableau
         const tbody = document.querySelector("#classement tbody");
         classement.forEach(p => {
           const tr = document.createElement('tr');
