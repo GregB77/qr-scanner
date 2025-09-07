@@ -304,8 +304,8 @@
         const participants = participantsSnap.val() || {};
         const scans = scanSnap.val() || {};
 
-        // Construction du classement
-        const classement = Object.keys(scans)
+        // Construction du classement (d'abord trié par temps croissant pour les positions)
+        let classement = Object.keys(scans)
           .map(dossard => {
             const scan = scans[dossard];
             const participant = participants[dossard] || {};
@@ -323,10 +323,13 @@
               categorie: participant.categorie || ''
             };
           })
-          .sort((a, b) => b.tempsMs - a.tempsMs);
+          .sort((a, b) => a.tempsMs - b.tempsMs); // Tri croissant pour calculer les bonnes positions
 
-        // Calcul des positions et compteurs
+        // Calcul des positions et compteurs (basé sur l'ordre croissant)
         const { count10, count20 } = calculatePositions(classement);
+
+        // PUIS on inverse l'ordre pour l'affichage
+        classement = classement.reverse();
 
         // Mise en cache
         cachedClassement = { classement, count10, count20 };
