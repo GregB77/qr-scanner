@@ -323,7 +323,7 @@
               categorie: participant.categorie || ''
             };
           })
-          .sort((a, b) => a.tempsMs - b.tempsMs);
+          .sort((a, b) => b.tempsMs - a.tempsMs);
 
         // Calcul des positions et compteurs
         const { count10, count20 } = calculatePositions(classement);
