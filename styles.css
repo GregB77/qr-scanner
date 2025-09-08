@@ -74,7 +74,7 @@ h1 {
 
 @keyframes chronoPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.03); }
 }
 
 .chrono-time.paused {
@@ -154,22 +154,22 @@ th {
   z-index: 10;
 }
 
-/* ✅ Alternance blanc / gris */
-tbody tr:nth-child(odd) {
-  background: #fff !important;
+/* ✅ Alternance blanc / gris, même sans <tbody> */
+table tr:nth-child(odd) {
+  background: #ffffff !important;
 }
-tbody tr:nth-child(even) {
+table tr:nth-child(even) {
   background: #f2f2f2 !important;
 }
 
-/* ❌ suppression du vert pâle */
-tbody tr.new-entry {
+/* ✅ suppression du vert pâle */
+table tr.new-entry {
   background: inherit !important;
   animation: none !important;
 }
 
-/* ❌ suppression du hover bleu */
-tbody tr:hover {
+/* ✅ suppression du hover bleu */
+table tr:hover {
   background: inherit !important;
 }
 
