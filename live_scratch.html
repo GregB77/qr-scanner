@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chronomètre Live</title>
+<title>Chronomètre Live Optimisé</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:system-ui,-apple-system,sans-serif;margin:20px;background:#f9f9f9;color:#222;line-height:1.4;overflow-x:hidden;}
@@ -81,29 +81,58 @@ const toggleBtn=document.getElementById("theme-toggle"), body=document.body;
 const savedTheme=localStorage.getItem("theme"); if(savedTheme) body.classList.add(savedTheme);
 toggleBtn.addEventListener("click",e=>{e.preventDefault(); if(body.classList.contains("dark")){body.classList.remove("dark"); body.classList.add("light"); localStorage.setItem("theme","light");} else if(body.classList.contains("light")){body.classList.remove("light"); localStorage.removeItem("theme");} else{body.classList.add("dark"); localStorage.setItem("theme","dark");}});
 
-// --- Firebase config ---
+// --- Firebase ---
 const firebaseConfig={apiKey:"AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",authDomain:"calor-run.firebaseapp.com",databaseURL:"https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",projectId:"calor-run",storageBucket:"calor-run.firebasestorage.app",messagingSenderId:"329949291334",appId:"1:329949291334:web:c71ef20268c609cf953b47",measurementId:"G-YVQPW6JGPK"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 // --- Variables ---
-let departureTimestamp=null, participants={}, scans={}, currentClassement=[], previousCounts={count10:0,count20:0}, chronoInterval=null;
+let departureTimestamp=null, participants={}, scans={}, currentClassement=[];
 const elements={loading:document.getElementById('loading'),compteurs:document.getElementById('compteurs'),tableContainer:document.getElementById('table-container'),error:document.getElementById('error'),count10:document.getElementById('count-10'),count20:document.getElementById('count-20'),compteur10:document.getElementById('compteur-10'),compteur20:document.getElementById('compteur-20'),tbody:document.querySelector('#classement tbody'),lastUpdate:document.getElementById('last-update'),updateTime:document.getElementById('update-time'),chronoTime:document.getElementById('chrono-time')};
+let chronoInterval=null;
 
 // --- Fonctions ---
-function formatTime(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600).toString().padStart(2,'0'),m=Math.floor((s%3600)/60).toString().padStart(2,'0'),sec=(s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`;}
-function startChrono(){if(chronoInterval) clearInterval(chronoInterval); if(!departureTimestamp){elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); return;} elements.chronoTime.classList.remove('paused'); const updateChrono=()=>{const elapsed=Date.now()-departureTimestamp; elements.chronoTime.textContent=elapsed<0?`-${formatTime(Math.abs(elapsed))}`:formatTime(elapsed); elements.chronoTime.classList.toggle('paused',elapsed<0);}; updateChrono(); chronoInterval=setInterval(updateChrono,1000);}
+function formatTime(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600).toString().padStart(2,'0'),m=Math.floor((s%3600)/60).toString().padStart(2,'0'),sec=(s%60).toString().padStart(2,'0');return`${h}:${m}:${sec}`;}
+function startChrono(){if(chronoInterval) clearInterval(chronoInterval); if(!departureTimestamp){elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused');return;} elements.chronoTime.classList.remove('paused'); chronoInterval=setInterval(()=>{const elapsed=Date.now()-departureTimestamp; elements.chronoTime.textContent=elapsed<0?`-${formatTime(Math.abs(elapsed))}`:formatTime(elapsed); elements.chronoTime.classList.toggle('paused',elapsed<0); updateLastUpdateTime();},1000);}
 function stopChrono(){if(chronoInterval) clearInterval(chronoInterval); chronoInterval=null; elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused');}
-function updateLastUpdateTime(){const now=new Date(); elements.updateTime.textContent=now.toLocaleTimeString('fr-FR'); elements.lastUpdate.style.display='block';}
+function updateLastUpdateTime(){elements.updateTime.textContent=new Date().toLocaleTimeString('fr-FR'); elements.lastUpdate.style.display='block';}
 function showError(msg){elements.loading.style.display='none'; elements.error.textContent=msg; elements.error.style.display='block';}
 function createTableRow(p){const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.dossard}</td><td>${p.nom}</td><td>${p.prenom}</td><td>${p.tempsStr}</td><td>${p.course}</td><td>${p.scratch}</td><td>${p.genre}</td><td>${p.posGenre}</td><td>${p.categorie}</td><td>${p.posCat}</td>`; return tr;}
-function calculatePositions(classement){let c10=0,c20=0,s={},g={},cat={}; classement.forEach(p=>{const course=String(p.course).trim(); if(['10','10km','10 km'].includes(course)) c10++; else if(['20','20km','20 km'].includes(course)) c20++; s[p.course]=(s[p.course]||0)+1; p.scratch=s[p.course]; const keyG=`${p.course}_${p.genre}`; g[keyG]=(g[keyG]||0)+1; p.posGenre=g[keyG]; const keyC=`${p.course}_${p.categorie}`; cat[keyC]=(cat[keyC]||0)+1; p.posCat=cat[keyC];}); return {count10:c10,count20:c20};}
-function displayData(classement,c10,c20){const frag=document.createDocumentFragment(); classement.forEach(p=>frag.appendChild(createTableRow(p))); elements.tbody.innerHTML=''; elements.tbody.appendChild(frag); elements.loading.style.display='none'; elements.error.style.display='none'; elements.compteurs.style.display='block'; elements.tableContainer.style.display='block'; updateLastUpdateTime(); previousCounts={count10:c10,count20:c20}; currentClassement=[...classement];}
-function updateClassement(){if(!departureTimestamp||!Object.keys(scans).length) return; try{let classement=Object.keys(scans).map(dossard=>{const scan=scans[dossard],part=participants[dossard]||{},tempsMs=new Date(scan.dateTime).getTime()-departureTimestamp; return {dossard,nom:part.nom||'',prenom:part.prenom||'',tempsMs,tempsStr:formatTime(tempsMs),course:part.course||'',genre:part.genre||'',categorie:part.categorie||''};}).sort((a,b)=>a.tempsMs-b.tempsMs); const {count10,count20}=calculatePositions(classement); classement=classement.reverse(); displayData(classement,count10,count20);}catch(err){console.error(err); showError(`Erreur de calcul: ${err.message}`);}}
-function setupRealtimeListeners(){db.ref('data/depart_course').on('value',snap=>{departureTimestamp=snap.exists()?new Date(snap.val()).getTime():null; departureTimestamp?startChrono():stopChrono(); updateClassement();}); db.ref('participants').on('value',snap=>{participants=snap.val()||{}; updateClassement();}); db.ref('scan_dossards').on('value',snap=>{scans=snap.val()||{}; updateClassement();});}
-function cleanup(){if(chronoInterval) clearInterval(chronoInterval);}
+function calculatePositions(classement){let c10=0,c20=0,s={},g={},cat={}; classement.forEach(p=>{const course=String(p.course).trim(); if(['10','10km','10 km'].includes(course))c10++; else if(['20','20km','20 km'].includes(course))c20++; s[p.course]=(s[p.course]||0)+1; p.scratch=s[p.course]; const keyG=`${p.course}_${p.genre}`; g[keyG]=(g[keyG]||0)+1; p.posGenre=g[keyG]; const keyC=`${p.course}_${p.categorie}`; cat[keyC]=(cat[keyC]||0)+1; p.posCat=cat[keyC];}); return{count10:c10,count20:c20};}
+
+// --- Nouvelle fonction displayData avec dernier arrivé en haut ---
+function displayData(classement){
+  // Tri décroissant par temps pour mettre le dernier arrivé en haut
+  classement.sort((a,b)=>b.tempsMs - a.tempsMs);
+
+  const c = calculatePositions(classement);
+  elements.tbody.innerHTML='';
+  classement.forEach(p=>elements.tbody.appendChild(createTableRow(p)));
+
+  elements.loading.style.display='none';
+  elements.error.style.display='none';
+  elements.compteurs.style.display='block';
+  elements.tableContainer.style.display='block';
+
+  elements.count10.textContent=c.count10;
+  elements.count20.textContent=c.count20;
+  updateLastUpdateTime();
+
+  currentClassement=[...classement];
+}
+
+// --- Classement ---
+function updateClassement(){if(!departureTimestamp||!Object.keys(scans).length)return; try{let classement=Object.keys(scans).map(dossard=>{const scan=scans[dossard],part=participants[dossard]||{},tempsMs=new Date(scan.dateTime).getTime()-departureTimestamp; return{dossard,nom:part.nom||'',prenom:part.prenom||'',tempsMs,tempsStr:formatTime(tempsMs),course:part.course||'',genre:part.genre||'',categorie:part.categorie||''};}); displayData(classement);}catch(err){console.error(err); showError(`Erreur de calcul: ${err.message}`); }}
+
+// --- Listeners ---
+function setupRealtimeListeners(){
+  db.ref('data/depart_course').on('value',snap=>{departureTimestamp=snap.exists()?new Date(snap.val()).getTime():null; departureTimestamp?startChrono():stopChrono(); updateClassement();});
+  db.ref('participants').on('value',snap=>{participants=snap.val()||{}; updateClassement();});
+  db.ref('scan_dossards').on('value',snap=>{scans=snap.val()||{}; updateClassement();});
+}
+
 document.addEventListener('DOMContentLoaded',()=>{elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); setupRealtimeListeners();});
-window.addEventListener('beforeunload',cleanup);
+window.addEventListener('beforeunload',()=>{if(chronoInterval) clearInterval(chronoInterval);});
 </script>
 </body>
 </html>
