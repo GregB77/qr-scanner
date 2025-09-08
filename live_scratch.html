@@ -498,6 +498,10 @@
 
     // Fonction de nettoyage des listeners
     function cleanup() {
+      if (chronoInterval) {
+        clearInterval(chronoInterval);
+        chronoInterval = null;
+      }
       if (departureListener) {
         db.ref('data/depart_course').off('value', departureListener);
       }
