@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Trail Calor Run</title>
+<title>Chronomètre Live</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:system-ui,-apple-system,sans-serif;margin:20px;background:#f9f9f9;color:#222;line-height:1.4;overflow-x:hidden;}
-h1{text-align:center;margin-bottom:20px;font-size:clamp(1.5rem,4vw,2.5rem);color:#215E99;}
 
-.chrono-container{text-align:center;margin:20px 0 30px;padding:20px;background:linear-gradient(135deg,#215E99 0%,#E61780 100%);border-radius:15px;color:white;box-shadow:0 4px 15px rgba(0,0,0,0.2);}
+.chrono-container{text-align:center;margin:20px 0;padding:20px;background:linear-gradient(135deg,#215E99 0%,#E61780 100%);border-radius:15px;color:white;box-shadow:0 4px 15px rgba(0,0,0,0.2);}
 .chrono-label{font-size:clamp(0.9rem,2.5vw,1.1rem);margin-bottom:10px;opacity:0.9;font-weight:500;}
 .chrono-time{font-family:'Courier New',monospace;font-size:clamp(2rem,6vw,3.5rem);font-weight:bold;letter-spacing:0.1em;text-shadow:2px 2px 4px rgba(0,0,0,0.3);display:inline-block;min-width:8em;animation:chronoPulse 2s ease-in-out infinite;}
 .chrono-time.paused{animation:none;opacity:0.7;}
-@keyframes chronoPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.03);}}
+@keyframes chronoPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
 
 .compteurs{text-align:center;margin-bottom:30px;font-size:clamp(0.9rem,2.5vw,1.1rem);font-weight:bold;}
 .compteur{display:inline-block;margin:5px 10px;padding:10px 15px;color:white;border-radius:5px;min-width:120px;}
@@ -47,20 +46,9 @@ body.dark tbody tr:nth-child(odd){background:#1e1e1e;}
 body.dark tbody tr:nth-child(even){background:#2a2a2a;}
 body.dark .error{background:#3a1a1a;color:#ffaaaa;}
 body.dark .last-update a{color:#4aa3ff;}
-
-/* Light theme override */
-body.light{background:#f9f9f9;color:#222;}
-body.light table{background:#fff;color:#222;}
-body.light th{background:linear-gradient(135deg,#215E99 0%,#E61780 100%);}
-body.light tbody tr:nth-child(odd){background:#fff;}
-body.light tbody tr:nth-child(even){background:#f2f2f2;}
-body.light .error{background:#ffebee;color:#d32f2f;}
-body.light .last-update a{color:#215E99;}
 </style>
 </head>
 <body>
-
-<h1>Live Trail Calor Run</h1>
 
 <div id="chrono-container" class="chrono-container">
   <div class="chrono-label">Temps de course</div>
@@ -110,115 +98,26 @@ toggleBtn.addEventListener("click",e=>{
   }
 });
 
-// --- Firebase ---
-const firebaseConfig={
-  apiKey:"AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
-  authDomain:"calor-run.firebaseapp.com",
-  databaseURL:"https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:"calor-run",
-  storageBucket:"calor-run.firebasestorage.app",
-  messagingSenderId:"329949291334",
-  appId:"1:329949291334:web:c71ef20268c609cf953b47",
-  measurementId:"G-YVQPW6JGPK"
-};
+// --- Firebase config ---
+const firebaseConfig={apiKey:"AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",authDomain:"calor-run.firebaseapp.com",databaseURL:"https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",projectId:"calor-run",storageBucket:"calor-run.firebasestorage.app",messagingSenderId:"329949291334",appId:"1:329949291334:web:c71ef20268c609cf953b47",measurementId:"G-YVQPW6JGPK"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 // --- Variables ---
 let departureTimestamp=null, participants={}, scans={}, currentClassement=[], previousCounts={count10:0,count20:0}, chronoInterval=null;
-const elements={
-  loading:document.getElementById('loading'),
-  compteurs:document.getElementById('compteurs'),
-  tableContainer:document.getElementById('table-container'),
-  error:document.getElementById('error'),
-  count10:document.getElementById('count-10'),
-  count20:document.getElementById('count-20'),
-  compteur10:document.getElementById('compteur-10'),
-  compteur20:document.getElementById('compteur-20'),
-  tbody:document.querySelector('#classement tbody'),
-  lastUpdate:document.getElementById('last-update'),
-  updateTime:document.getElementById('update-time'),
-  chronoTime:document.getElementById('chrono-time')
-};
+const elements={loading:document.getElementById('loading'),compteurs:document.getElementById('compteurs'),tableContainer:document.getElementById('table-container'),error:document.getElementById('error'),count10:document.getElementById('count-10'),count20:document.getElementById('count-20'),compteur10:document.getElementById('compteur-10'),compteur20:document.getElementById('compteur-20'),tbody:document.querySelector('#classement tbody'),lastUpdate:document.getElementById('last-update'),updateTime:document.getElementById('update-time'),chronoTime:document.getElementById('chrono-time')};
 
 // --- Fonctions ---
-function formatTime(ms){
-  const s=Math.floor(ms/1000),
-        h=Math.floor(s/3600).toString().padStart(2,'0'),
-        m=Math.floor((s%3600)/60).toString().padStart(2,'0'),
-        sec=(s%60).toString().padStart(2,'0');
-  return `${h}:${m}:${sec}`;
-}
-
-function startChrono(){
-  if(chronoInterval) clearInterval(chronoInterval);
-  if(!departureTimestamp){elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); return;}
-  elements.chronoTime.classList.remove('paused');
-  const updateChrono=()=>{
-    const elapsed=Date.now()-departureTimestamp;
-    elements.chronoTime.textContent=elapsed<0?`-${formatTime(Math.abs(elapsed))}`:formatTime(elapsed);
-    elements.chronoTime.classList.toggle('paused',elapsed<0);
-  };
-  updateChrono(); chronoInterval=setInterval(updateChrono,1000);
-}
+function formatTime(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600).toString().padStart(2,'0'),m=Math.floor((s%3600)/60).toString().padStart(2,'0'),sec=(s%60).toString().padStart(2,'0'); return `${h}:${m}:${sec}`;}
+function startChrono(){if(chronoInterval) clearInterval(chronoInterval); if(!departureTimestamp){elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); return;} elements.chronoTime.classList.remove('paused'); const updateChrono=()=>{const elapsed=Date.now()-departureTimestamp; elements.chronoTime.textContent=elapsed<0?`-${formatTime(Math.abs(elapsed))}`:formatTime(elapsed); elements.chronoTime.classList.toggle('paused',elapsed<0);}; updateChrono(); chronoInterval=setInterval(updateChrono,1000);}
 function stopChrono(){if(chronoInterval) clearInterval(chronoInterval); chronoInterval=null; elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused');}
 function updateLastUpdateTime(){const now=new Date(); elements.updateTime.textContent=now.toLocaleTimeString('fr-FR'); elements.lastUpdate.style.display='block';}
 function showError(msg){elements.loading.style.display='none'; elements.error.textContent=msg; elements.error.style.display='block';}
-
-function createTableRow(p){
-  const tr=document.createElement('tr');
-  tr.innerHTML=`<td>${p.dossard}</td><td>${p.nom}</td><td>${p.prenom}</td><td>${p.tempsStr}</td>
-  <td>${p.course}</td><td>${p.scratch}</td><td>${p.genre}</td><td>${p.posGenre}</td><td>${p.categorie}</td><td>${p.posCat}</td>`;
-  return tr;
-}
-
-function calculatePositions(classement){
-  let count10=0,count20=0,s={},g={},cat={};
-  classement.forEach(p=>{
-    const course=String(p.course).trim();
-    if(course==='10'||course==='10km'||course==='10 km') count10++;
-    else if(course==='20'||course==='20km'||course==='20 km') count20++;
-    s[p.course]=(s[p.course]||0)+1; p.scratch=s[p.course];
-    const keyG=`${p.course}_${p.genre}`; g[keyG]=(g[keyG]||0)+1; p.posGenre=g[keyG];
-    const keyC=`${p.course}_${p.categorie}`; cat[keyC]=(cat[keyC]||0)+1; p.posCat=cat[keyC];
-  });
-  return {count10,count20};
-}
-
-function displayData(classement,count10,count20){
-  const fragment=document.createDocumentFragment();
-  classement.forEach(p=>fragment.appendChild(createTableRow(p)));
-  elements.tbody.innerHTML=''; elements.tbody.appendChild(fragment);
-  elements.loading.style.display='none'; elements.error.style.display='none';
-  elements.compteurs.style.display='block'; elements.tableContainer.style.display='block';
-  updateLastUpdateTime();
-  previousCounts={count10,count20}; currentClassement=[...classement];
-}
-
-function updateClassement(){
-  if(!departureTimestamp||Object.keys(scans).length===0) return;
-  try{
-    let classement=Object.keys(scans).map(dossard=>{
-      const scan=scans[dossard], p=participants[dossard]||{};
-      const elapsed=new Date(scan.dateTime).getTime()-departureTimestamp;
-      return {dossard,nom:p.nom||'',prenom:p.prenom||'',tempsMs:elapsed,tempsStr:formatTime(elapsed),course:p.course||'',genre:p.genre||'',categorie:p.categorie||''};
-    }).sort((a,b)=>a.tempsMs-b.tempsMs);
-    const {count10,count20}=calculatePositions(classement);
-    classement=classement.reverse();
-    displayData(classement,count10,count20);
-  }catch(e){console.error(e); showError(`Erreur de calcul: ${e.message}`);}
-}
-
-// --- Firebase listeners ---
-let departureListener,participantsListener,scansListener;
-function setupRealtimeListeners(){
-  departureListener=db.ref('data/depart_course').on('value',snap=>{
-    departureTimestamp=snap.exists()?new Date(snap.val()).getTime():null;
-    if(departureTimestamp) startChrono(),updateClassement(); else stopChrono();
-  });
-  participantsListener=db.ref('participants').on('value',snap=>{participants=snap.val()||{}; updateClassement();});
-  scansListener=db.ref('scan_dossards').on('value',snap=>{scans=snap.val()||{}; updateClassement();});
-}
+function createTableRow(p){const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.dossard}</td><td>${p.nom}</td><td>${p.prenom}</td><td>${p.tempsStr}</td><td>${p.course}</td><td>${p.scratch}</td><td>${p.genre}</td><td>${p.posGenre}</td><td>${p.categorie}</td><td>${p.posCat}</td>`; return tr;}
+function calculatePositions(classement){let count10=0,count20=0,s={},g={},cat={}; classement.forEach(p=>{const course=String(p.course).trim(); if(course==='10'||course==='10km'||course==='10 km') count10++; else if(course==='20'||course==='20km'||course==='20 km') count20++; s[p.course]=(s[p.course]||0)+1; p.scratch=s[p.course]; const keyG=`${p.course}_${p.genre}`; g[keyG]=(g[keyG]||0)+1; p.posGenre=g[keyG]; const keyC=`${p.course}_${p.categorie}`; cat[keyC]=(cat[keyC]||0)+1; p.posCat=cat[keyC];}); return {count10,count20};}
+function displayData(classement,count10,count20){const fragment=document.createDocumentFragment(); classement.forEach(p=>fragment.appendChild(createTableRow(p))); elements.tbody.innerHTML=''; elements.tbody.appendChild(fragment); elements.loading.style.display='none'; elements.error.style.display='none'; elements.compteurs.style.display='block'; elements.tableContainer.style.display='block'; updateLastUpdateTime(); previousCounts={count10,count20}; currentClassement=[...classement];}
+function updateClassement(){if(!departureTimestamp||Object.keys(scans).length===0) return; try{let classement=Object.keys(scans).map(dossard=>{const scan=scans[dossard],part=participants[dossard]||{},tempsMs=new Date(scan.dateTime).getTime()-departureTimestamp; return {dossard,nom:part.nom||'',prenom:part.prenom||'',tempsMs,tempsStr:formatTime(tempsMs),course:part.course||'',genre:part.genre||'',categorie:part.categorie||''};}).sort((a,b)=>a.tempsMs-b.tempsMs); const {count10,count20}=calculatePositions(classement); classement=classement.reverse(); displayData(classement,count10,count20);}catch(err){console.error(err); showError(`Erreur de calcul: ${err.message}`);}}
+function setupRealtimeListeners(){departureListener=db.ref('data/depart_course').on('value',snap=>{departureTimestamp=snap.exists()?new Date(snap.val()).getTime():null; departureTimestamp?startChrono():stopChrono(); updateClassement();}); participantsListener=db.ref('participants').on('value',snap=>{participants=snap.val()||{}; updateClassement();}); scansListener=db.ref('scan_dossards').on('value',snap=>{scans=snap.val()||{}; updateClassement();});}
 function cleanup(){if(chronoInterval) clearInterval(chronoInterval); if(departureListener) db.ref('data/depart_course').off('value',departureListener); if(participantsListener) db.ref('participants').off('value',participantsListener); if(scansListener) db.ref('scan_dossards').off('value',scansListener);}
 document.addEventListener('DOMContentLoaded',()=>{elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); setupRealtimeListeners();});
 window.addEventListener('beforeunload',cleanup);
