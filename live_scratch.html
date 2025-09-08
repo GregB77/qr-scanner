@@ -50,6 +50,42 @@
       box-shadow: 0 0 10px rgba(244, 67, 54, 0.6);
     }
     
+    .chrono-container {
+      text-align: center;
+      margin: 20px 0 30px 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #215E99 0%, #E61780 100%);
+      border-radius: 15px;
+      color: white;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .chrono-label {
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      margin-bottom: 10px;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+    
+    .chrono-time {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      animation: chronoPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes chronoPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    
+    .chrono-time.paused {
+      animation: none;
+      opacity: 0.7;
+    }
+    
     .loading {
       text-align: center;
       font-size: 1.2rem;
@@ -180,6 +216,12 @@
     <div class="status-indicator" id="status-indicator" title="Connexion en temps réel active"></div>
   </h1>
   
+  <!-- CHRONOMÈTRE -->
+  <div id="chrono-container" class="chrono-container">
+    <div class="chrono-label">Temps écoulé depuis le départ</div>
+    <div class="chrono-time" id="chrono-time">--:--:--</div>
+  </div>
+  
   <div id="loading" class="loading">Connexion en temps réel...</div>
   
   <div id="compteurs" class="compteurs" style="display: none;">
@@ -236,6 +278,7 @@
     let scans = {};
     let currentClassement = [];
     let previousCounts = { count10: 0, count20: 0 };
+    let chronoInterval = null;
     
     // Listeners Firebase
     let departureListener = null;
@@ -255,7 +298,9 @@
       tbody: document.querySelector('#classement tbody'),
       statusIndicator: document.getElementById('status-indicator'),
       lastUpdate: document.getElementById('last-update'),
-      updateTime: document.getElementById('update-time')
+      updateTime: document.getElementById('update-time'),
+      chronoContainer: document.getElementById('chrono-container'),
+      chronoTime: document.getElementById('chrono-time')
     };
 
     // Initialisation Firebase
@@ -269,6 +314,50 @@
       const m = Math.floor((tempsSec % 3600) / 60).toString().padStart(2, '0');
       const s = (tempsSec % 60).toString().padStart(2, '0');
       return `${h}:${m}:${s}`;
+    }
+
+    // Fonction pour démarrer/arrêter le chronomètre
+    function startChrono() {
+      if (chronoInterval) {
+        clearInterval(chronoInterval);
+      }
+      
+      if (!departureTimestamp) {
+        elements.chronoTime.textContent = "--:--:--";
+        elements.chronoTime.classList.add('paused');
+        return;
+      }
+      
+      elements.chronoTime.classList.remove('paused');
+      
+      const updateChrono = () => {
+        const now = Date.now();
+        const elapsed = now - departureTimestamp;
+        
+        if (elapsed < 0) {
+          // La course n'a pas encore commencé
+          const timeToStart = Math.abs(elapsed);
+          elements.chronoTime.textContent = `-${formatTime(timeToStart)}`;
+          elements.chronoTime.classList.add('paused');
+        } else {
+          elements.chronoTime.textContent = formatTime(elapsed);
+          elements.chronoTime.classList.remove('paused');
+        }
+      };
+      
+      // Mise à jour immédiate puis toutes les secondes
+      updateChrono();
+      chronoInterval = setInterval(updateChrono, 1000);
+    }
+
+    // Fonction pour arrêter le chronomètre
+    function stopChrono() {
+      if (chronoInterval) {
+        clearInterval(chronoInterval);
+        chronoInterval = null;
+      }
+      elements.chronoTime.textContent = "--:--:--";
+      elements.chronoTime.classList.add('paused');
     }
 
     // Fonction pour mettre à jour l'heure de dernière mise à jour
@@ -449,11 +538,21 @@
             if (snapshot.exists()) {
               departureTimestamp = new Date(snapshot.val()).getTime();
               console.log('Heure de départ mise à jour:', new Date(departureTimestamp));
+              
+              // Démarrer le chronomètre
+              startChrono();
+              
+              // Recalculer le classement si nécessaire
               updateClassement();
+            } else {
+              // Pas d'heure de départ définie
+              departureTimestamp = null;
+              stopChrono();
             }
           },
           (error) => {
             console.error('Erreur listener départ:', error);
+            stopChrono();
             showError('Erreur de connexion pour l\'heure de départ');
           }
         );
@@ -530,6 +629,17 @@
     // Initialisation au chargement de la page
     document.addEventListener('DOMContentLoaded', () => {
       console.log('Initialisation du classement en temps réel');
+      
+      // Debug : vérifier que les éléments existent
+      console.log('Chrono container:', elements.chronoContainer);
+      console.log('Chrono time:', elements.chronoTime);
+      
+      // Initialiser le chronomètre avec un état par défaut
+      if (elements.chronoTime) {
+        elements.chronoTime.textContent = "--:--:--";
+        elements.chronoTime.classList.add('paused');
+      }
+      
       setupRealtimeListeners();
     });
 
