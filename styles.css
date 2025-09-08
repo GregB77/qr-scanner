@@ -9,6 +9,7 @@ body {
   margin: 20px;
   background: #f9f9f9;
   line-height: 1.4;
+  overflow-x: hidden;
 }
 
 h1 {
@@ -49,6 +50,7 @@ h1 {
   border-radius: 15px;
   color: white;
   box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  overflow: hidden;
 }
 
 .chrono-label {
@@ -65,11 +67,13 @@ h1 {
   letter-spacing: 0.1em;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
   animation: chronoPulse 2s ease-in-out infinite;
+  display: inline-block;
+  min-width: 8em; /* Prevent width jump */
 }
 
 @keyframes chronoPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
+  50% { transform: scale(1.03); }
 }
 
 .chrono-time.paused {
@@ -149,10 +153,13 @@ th {
   z-index: 10;
 }
 
-tbody tr:nth-child(even) {
-  background: #f8f9fa;
+/* Standard alternate row striping: white and light grey */
+tbody tr:nth-child(odd) {
+  background: #fff;
 }
-
+tbody tr:nth-child(even) {
+  background: #f2f2f2;
+}
 tbody tr:hover {
   background: #e3f2fd;
 }
