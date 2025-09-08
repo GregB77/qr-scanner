@@ -99,38 +99,9 @@ function updateLastUpdateTime(){elements.updateTime.textContent=new Date().toLoc
 function showError(msg){elements.loading.style.display='none'; elements.error.textContent=msg; elements.error.style.display='block';}
 function createTableRow(p){const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.dossard}</td><td>${p.nom}</td><td>${p.prenom}</td><td>${p.tempsStr}</td><td>${p.course}</td><td>${p.scratch}</td><td>${p.genre}</td><td>${p.posGenre}</td><td>${p.categorie}</td><td>${p.posCat}</td>`; return tr;}
 function calculatePositions(classement){let c10=0,c20=0,s={},g={},cat={}; classement.forEach(p=>{const course=String(p.course).trim(); if(['10','10km','10 km'].includes(course))c10++; else if(['20','20km','20 km'].includes(course))c20++; s[p.course]=(s[p.course]||0)+1; p.scratch=s[p.course]; const keyG=`${p.course}_${p.genre}`; g[keyG]=(g[keyG]||0)+1; p.posGenre=g[keyG]; const keyC=`${p.course}_${p.categorie}`; cat[keyC]=(cat[keyC]||0)+1; p.posCat=cat[keyC];}); return{count10:c10,count20:c20};}
-
-// --- Nouvelle fonction displayData avec dernier arrivé en haut ---
-function displayData(classement){
-  // Tri décroissant par temps pour mettre le dernier arrivé en haut
-  classement.sort((a,b)=>b.tempsMs - a.tempsMs);
-
-  const c = calculatePositions(classement);
-  elements.tbody.innerHTML='';
-  classement.forEach(p=>elements.tbody.appendChild(createTableRow(p)));
-
-  elements.loading.style.display='none';
-  elements.error.style.display='none';
-  elements.compteurs.style.display='block';
-  elements.tableContainer.style.display='block';
-
-  elements.count10.textContent=c.count10;
-  elements.count20.textContent=c.count20;
-  updateLastUpdateTime();
-
-  currentClassement=[...classement];
-}
-
-// --- Classement ---
-function updateClassement(){if(!departureTimestamp||!Object.keys(scans).length)return; try{let classement=Object.keys(scans).map(dossard=>{const scan=scans[dossard],part=participants[dossard]||{},tempsMs=new Date(scan.dateTime).getTime()-departureTimestamp; return{dossard,nom:part.nom||'',prenom:part.prenom||'',tempsMs,tempsStr:formatTime(tempsMs),course:part.course||'',genre:part.genre||'',categorie:part.categorie||''};}); displayData(classement);}catch(err){console.error(err); showError(`Erreur de calcul: ${err.message}`); }}
-
-// --- Listeners ---
-function setupRealtimeListeners(){
-  db.ref('data/depart_course').on('value',snap=>{departureTimestamp=snap.exists()?new Date(snap.val()).getTime():null; departureTimestamp?startChrono():stopChrono(); updateClassement();});
-  db.ref('participants').on('value',snap=>{participants=snap.val()||{}; updateClassement();});
-  db.ref('scan_dossards').on('value',snap=>{scans=snap.val()||{}; updateClassement();});
-}
-
+function displayData(classement,count10,count20){elements.tbody.innerHTML=''; classement.forEach(p=>elements.tbody.appendChild(createTableRow(p))); elements.loading.style.display='none'; elements.error.style.display='none'; elements.compteurs.style.display='block'; elements.tableContainer.style.display='block'; elements.count10.textContent=count10; elements.count20.textContent=count20; updateLastUpdateTime(); currentClassement=[...classement];}
+function updateClassement(){if(!departureTimestamp||!Object.keys(scans).length)return; try{let classement=Object.keys(scans).map(dossard=>{const scan=scans[dossard],part=participants[dossard]||{},tempsMs=new Date(scan.dateTime).getTime()-departureTimestamp; return{dossard,nom:part.nom||'',prenom:part.prenom||'',tempsMs,tempsStr:formatTime(tempsMs),course:part.course||'',genre:part.genre||'',categorie:part.categorie||''};}); const {count10,count20}=calculatePositions(classement); classement.sort((a,b)=>b.tempsMs-a.tempsMs); displayData(classement,count10,count20);}catch(e){console.error(e); showError(`Erreur de calcul: ${e.message}`);}}
+function setupRealtimeListeners(){db.ref('data/depart_course').on('value',snap=>{departureTimestamp=snap.exists()?new Date(snap.val()).getTime():null; departureTimestamp?startChrono():stopChrono(); updateClassement();}); db.ref('participants').on('value',snap=>{participants=snap.val()||{}; updateClassement();}); db.ref('scan_dossards').on('value',snap=>{scans=snap.val()||{}; updateClassement();});}
 document.addEventListener('DOMContentLoaded',()=>{elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); setupRealtimeListeners();});
 window.addEventListener('beforeunload',()=>{if(chronoInterval) clearInterval(chronoInterval);});
 </script>
