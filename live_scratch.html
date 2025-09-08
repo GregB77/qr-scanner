@@ -25,7 +25,7 @@ body.dark { background: #121212; color: #eee; }
 .chrono-container {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: baseline; /* aligne l'icône et le texte */
   gap: 0.3em;
   margin: 20px 0 30px;
   padding: 20px;
@@ -37,7 +37,8 @@ body.dark { background: #121212; color: #eee; }
 
 .chrono-icon {
   flex-shrink: 0;
-  font-size: clamp(2rem, 6vw, 3.5rem); /* même taille que chrono */
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1;
 }
 
 .chrono-time {
@@ -49,6 +50,7 @@ body.dark { background: #121212; color: #eee; }
   display: inline-block;
   min-width: 8em;
   animation: chronoPulse 2s ease-in-out infinite;
+  line-height: 1;
 }
 
 @keyframes chronoPulse {
@@ -193,11 +195,9 @@ function calculatePositions(classement){
 }
 
 function displayData(classement,count10,count20){
-  const fragment=document.createDocumentFragment();
-  classement.forEach(p=>fragment.appendChild(createTableRow(p)));
-  elements.tbody.innerHTML=''; elements.tbody.appendChild(fragment);
-  elements.loading.style.display='none'; elements.compteurs.style.display='block'; elements.tableContainer.style.display='block';
   elements.count10.textContent=count10; elements.count20.textContent=count20;
+  elements.tbody.innerHTML=''; classement.forEach(p=>elements.tbody.appendChild(createTableRow(p)));
+  elements.loading.style.display='none'; elements.compteurs.style.display='block'; elements.tableContainer.style.display='block';
   updateLastUpdateTime(); currentClassement=[...classement];
 }
 
@@ -205,10 +205,10 @@ function updateClassement(){
   if(!departureTimestamp||Object.keys(scans).length===0) return;
   try{
     let classement=Object.keys(scans).map(dossard=>{
-      const scan=scans[dossard]; const part=participants[dossard]||{};
+      const scan=scans[dossard]; const p=participants[dossard]||{};
       const tMs=new Date(scan.dateTime).getTime()-departureTimestamp;
-      return { dossard, nom:part.nom||'', prenom:part.prenom||'', tempsMs:tMs, tempsStr:formatTime(tMs),
-        course:part.course||'', genre:part.genre||'', categorie:part.categorie||'' };
+      return { dossard, nom:p.nom||'', prenom:p.prenom||'', tempsMs:tMs, tempsStr:formatTime(tMs),
+        course:p.course||'', genre:p.genre||'', categorie:p.categorie||'' };
     }).sort((a,b)=>b.tempsMs-a.tempsMs); // dernier arrivé en haut
     const {count10,count20}=calculatePositions(classement);
     displayData(classement,count10,count20);
