@@ -157,11 +157,14 @@
       top: 0;
       z-index: 10;
     }
-    
-    tbody tr:nth-child(even) {
-      background: #f8f9fa;
+
+    /* Standard alternate row striping: white and light grey */
+    tbody tr:nth-child(odd) {
+      background: #fff;
     }
-    
+    tbody tr:nth-child(even) {
+      background: #f2f2f2;
+    }
     tbody tr:hover {
       background: #e3f2fd;
     }
@@ -212,7 +215,6 @@
 </head>
 <body>
   <h1>
-    
     <div class="status-indicator" id="status-indicator" title="Connexion en temps réel active"></div>
   </h1>
   
@@ -260,6 +262,7 @@
   </div>
 
   <script>
+    // (JavaScript code unchanged)
     // Configuration Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
