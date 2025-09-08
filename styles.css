@@ -1,65 +1,38 @@
-/* Reset de base */
+/* === Reset et box-sizing === */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* === Body === */
 body {
   font-family: system-ui, -apple-system, sans-serif;
   margin: 20px;
   background: #f9f9f9;
+  color: #222;
   line-height: 1.4;
   overflow-x: hidden;
-  color: #222;
 }
 
-h1 {
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
-  color: #215E99;
-  position: relative;
-}
-
-/* Indicateur de connexion */
-.status-indicator {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #4CAF50;
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
-  animation: pulse 2s infinite;
-}
-.status-indicator.disconnected {
-  background: #f44336;
-  box-shadow: 0 0 10px rgba(244, 67, 54, 0.6);
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Chrono */
+/* === Chronomètre === */
 .chrono-container {
   text-align: center;
-  margin: 20px 0 30px 0;
+  margin: 20px 0;
   padding: 20px;
   background: linear-gradient(135deg, #215E99 0%, #E61780 100%);
   border-radius: 15px;
   color: white;
   box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  overflow: hidden;
 }
+
 .chrono-label {
   font-size: clamp(0.9rem, 2.5vw, 1.1rem);
   margin-bottom: 10px;
   opacity: 0.9;
   font-weight: 500;
 }
+
 .chrono-time {
   font-family: 'Courier New', monospace;
   font-size: clamp(2rem, 6vw, 3.5rem);
@@ -70,22 +43,26 @@ h1 {
   min-width: 8em;
   animation: chronoPulse 2s ease-in-out infinite;
 }
+
 .chrono-time.paused {
   animation: none;
   opacity: 0.7;
 }
+
+/* Pulse animation pour le chrono */
 @keyframes chronoPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+  50% { transform: scale(1.05); }
 }
 
-/* Compteurs */
+/* === Compteurs === */
 .compteurs {
   text-align: center;
   margin-bottom: 30px;
   font-size: clamp(0.9rem, 2.5vw, 1.1rem);
   font-weight: bold;
 }
+
 .compteur {
   display: inline-block;
   margin: 5px 10px;
@@ -94,28 +71,32 @@ h1 {
   border-radius: 5px;
   min-width: 120px;
 }
+
 .compteur:nth-child(1) { background: #215E99; }
 .compteur:nth-child(2) { background: #E61780; }
 
-/* Tableau */
+/* === Tableaux === */
 .table-container {
   overflow-x: auto;
   margin-bottom: 40px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
+
 table {
   width: 100%;
   border-collapse: collapse;
   background: white;
   min-width: 800px;
 }
+
 th, td {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: center;
   font-size: 0.9rem;
 }
+
 th {
   background: linear-gradient(135deg, #215E99 0%, #E61780 100%);
   color: #fff;
@@ -124,16 +105,22 @@ th {
   top: 0;
   z-index: 10;
 }
+
+/* Lignes alternées */
 tbody tr:nth-child(odd) { background: #fff; }
 tbody tr:nth-child(even) { background: #f2f2f2; }
 
-/* Messages et infos */
-.loading, .error, .last-update {
+/* === Messages et mise à jour === */
+.loading,
+.error,
+.last-update {
   text-align: center;
   margin: 40px 0;
   font-size: 1rem;
 }
+
 .loading { color: #666; }
+
 .error {
   color: #d32f2f;
   font-weight: bold;
@@ -141,44 +128,44 @@ tbody tr:nth-child(even) { background: #f2f2f2; }
   background: #ffebee;
   border-radius: 8px;
 }
+
 .last-update {
   color: #666;
   font-size: 0.9rem;
   margin-top: 20px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+.last-update a {
+  color: #215E99;
+  text-decoration: underline;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+/* === Responsive === */
+@media(max-width:768px) {
   body { margin: 10px; }
-  .compteur {
-    display: block;
-    margin: 5px auto;
-    max-width: 200px;
-  }
+  .compteur { display: block; margin: 5px auto; max-width: 200px; }
   th, td { padding: 6px; font-size: 0.8rem; }
 }
 
-/* --- Mode sombre (automatique via préférences système) --- */
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #121212;
-    color: #eee;
-  }
-  .chrono-container {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-  }
-  table {
-    background: #1e1e1e;
-    color: #ddd;
-  }
-  th {
-    background: linear-gradient(135deg, #3a7bd5 0%, #e61880 100%);
-  }
-  tbody tr:nth-child(odd) { background: #1e1e1e; }
-  tbody tr:nth-child(even) { background: #2a2a2a; }
-  .error {
-    background: #3a1a1a;
-    color: #ffaaaa;
-  }
-  .last-update { color: #aaa; }
+/* === Dark theme === */
+body.dark {
+  background: #121212;
+  color: #eee;
 }
+
+body.dark table {
+  background: #1e1e1e;
+  color: #ddd;
+}
+
+body.dark th {
+  background: linear-gradient(135deg, #3a7bd5 0%, #e61880 100%);
+}
+
+body.dark tbody tr:nth-child(odd) { background: #1e1e1e; }
+body.dark tbody tr:nth-child(even) { background: #2a2a2a; }
+
+body.dark .error { background: #3a1a1a; color: #ffaaaa; }
+body.dark .last-update a { color: #4aa3ff; }
