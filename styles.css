@@ -4,12 +4,12 @@
   padding: 0;
 }
 
-body {
+html, body {
   font-family: system-ui, -apple-system, sans-serif;
   margin: 20px;
   background: #f9f9f9;
   line-height: 1.4;
-  overflow-x: hidden;
+  overflow-x: hidden; /* ✅ évite scroll horizontal */
 }
 
 h1 {
@@ -69,11 +69,12 @@ h1 {
   animation: chronoPulse 2s ease-in-out infinite;
   display: inline-block;
   min-width: 8em; /* Prevent width jump */
+  transform-origin: center; /* ✅ évite débordement */
 }
 
 @keyframes chronoPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+  50% { transform: scale(1.05); }
 }
 
 .chrono-time.paused {
@@ -153,31 +154,23 @@ th {
   z-index: 10;
 }
 
-/* Standard alternate row striping: white and light grey */
+/* ✅ Alternance blanc / gris */
 tbody tr:nth-child(odd) {
   background: #fff;
 }
 tbody tr:nth-child(even) {
   background: #f2f2f2;
 }
-tbody tr:hover {
-  background: #e3f2fd;
-}
 
+/* ❌ suppression du vert pâle */
 tbody tr.new-entry {
-  animation: slideIn 0.5s ease;
-  background: #e8f5e8 !important;
+  background: inherit !important;
+  animation: none;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+/* ❌ suppression du hover bleu */
+tbody tr:hover {
+  background: inherit;
 }
 
 .error {
