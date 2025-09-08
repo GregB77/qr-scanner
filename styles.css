@@ -156,21 +156,21 @@ th {
 
 /* ✅ Alternance blanc / gris */
 tbody tr:nth-child(odd) {
-  background: #fff;
+  background: #fff !important;
 }
 tbody tr:nth-child(even) {
-  background: #f2f2f2;
+  background: #f2f2f2 !important;
 }
 
 /* ❌ suppression du vert pâle */
 tbody tr.new-entry {
   background: inherit !important;
-  animation: none;
+  animation: none !important;
 }
 
 /* ❌ suppression du hover bleu */
 tbody tr:hover {
-  background: inherit;
+  background: inherit !important;
 }
 
 .error {
