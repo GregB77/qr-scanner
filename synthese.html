@@ -4,217 +4,96 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Synthèse Participants (Firebase)</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <style>
-  :root {
-    --bg: #f9f9f9;
-    --fg: #111;
-    --card: #fff;
-    --line: #e5e5e5;
-    --head-grad: linear-gradient(135deg, #215E99 0%, #E61780 100%);
-  }
-  * { box-sizing: border-box; margin:0; padding:0; }
-  body {
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    background: var(--bg); color: var(--fg); line-height: 1.5;
-    padding: 24px; overflow-x:hidden;
-  }
-  h1 { font-size: clamp(1.4rem, 2.5vw, 2rem); margin-bottom: 8px; color:#215E99; }
-  p.desc { margin-bottom: 18px; color:#555; }
-  .wrap { display: grid; gap: 20px; }
-  .card {
-    background: var(--card); border:1px solid var(--line); border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.06); padding: 16px;
-  }
-  .card h2 { font-size: 1.1rem; margin-bottom: 12px; }
-  .toolbar { display:flex; gap: 10px; align-items:center; justify-content:space-between; margin-bottom: 8px; }
-  .hint { font-size: .9rem; color:#666; }
-  .tables { overflow-x: auto; }
-  table { width:100%; border-collapse: collapse; min-width: 360px; }
-  th, td { border:1px solid var(--line); padding: 8px 10px; text-align: center; font-size: .95rem; }
-  th {
-    color:#fff; font-weight: 700; position: sticky; top: 0; z-index: 1;
-    background: var(--head-grad);
-  }
-  tbody tr:nth-child(odd){ background:#fff; }
-  tbody tr:nth-child(even){ background:#f2f2f2; }
-  tfoot td { font-weight: bold; background:#eee; }
-  .muted { color:#777; }
-  .badge { display:inline-block; padding:.2em .5em; border-radius: 999px; font-size:.85em; background:#eef1f5; }
-  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 900px){ .grid2 { grid-template-columns: 1fr; } }
-  .loading, .error { text-align:center; padding: 14px; }
-  .error { color: #b00020; font-weight: 600; }
+  body { font-family: system-ui, sans-serif; padding:20px; background:#f9f9f9; color:#111; }
+  h1 { color:#215E99; margin-bottom:10px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  table { width:100%; border-collapse: collapse; margin-bottom:20px; }
+  th, td { border:1px solid #ddd; padding:6px 10px; text-align:center; }
+  th { background:linear-gradient(135deg, #215E99 0%, #E61780 100%); color:#fff; }
+  tr:nth-child(even) { background:#f2f2f2; }
+  .subtotal { font-weight:bold; background:#e8f0fe; }
+  .total { font-weight:bold; background:#d1ecf1; }
 </style>
 </head>
 <body>
 
-  <h1>Synthèse des participants</h1>
-  <p class="desc">Données issues de <span class="badge">Firebase / participants</span></p>
+<h1>Synthèse des participants</h1>
+<div class="grid2">
+  <table id="tbl-10">
+    <thead>
+      <tr><th colspan="3">Course 10 km</th></tr>
+      <tr><th>Genre</th><th>Catégorie</th><th>Participants</th></tr>
+    </thead>
+    <tbody><tr><td colspan="3">Chargement…</td></tr></tbody>
+  </table>
 
-  <div class="wrap">
+  <table id="tbl-20">
+    <thead>
+      <tr><th colspan="3">Course 20 km</th></tr>
+      <tr><th>Genre</th><th>Catégorie</th><th>Participants</th></tr>
+    </thead>
+    <tbody><tr><td colspan="3">Chargement…</td></tr></tbody>
+  </table>
+</div>
 
-    <!-- Tableau 1 : Comptages par Genre x Catégorie, séparés 10 km et 20 km -->
-    <section class="card">
-      <div class="toolbar">
-        <h2>Répartition par genre et catégorie</h2>
-        <div class="hint" id="last-update">Dernière mise à jour : <span class="muted">—</span></div>
-      </div>
-      <div class="grid2">
-        <div class="tables">
-          <table id="tbl-counts-10">
-            <thead>
-              <tr><th colspan="3">Course 10 km</th></tr>
-              <tr><th>Genre</th><th>Catégorie</th><th>Participants</th></tr>
-            </thead>
-            <tbody><tr><td colspan="3" class="loading">Chargement…</td></tr></tbody>
-            <tfoot></tfoot>
-          </table>
-        </div>
-        <div class="tables">
-          <table id="tbl-counts-20">
-            <thead>
-              <tr><th colspan="3">Course 20 km</th></tr>
-              <tr><th>Genre</th><th>Catégorie</th><th>Participants</th></tr>
-            </thead>
-            <tbody><tr><td colspan="3" class="loading">Chargement…</td></tr></tbody>
-            <tfoot></tfoot>
-          </table>
-        </div>
-      </div>
-    </section>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+  authDomain: "calor-run.firebaseapp.com",
+  databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "calor-run",
+  storageBucket: "calor-run.firebasestorage.app",
+  messagingSenderId: "329949291334",
+  appId: "1:329949291334:web:c71ef20268c609cf953b47",
+  measurementId: "G-YVQPW6JGPK"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    <!-- Tableau 2 : Extrêmes d’âge -->
-    <section class="card">
-      <h2>Âges extrêmes par course</h2>
-      <div class="grid2">
-        <div class="tables">
-          <table id="tbl-ages-10">
-            <thead>
-              <tr><th colspan="4">Course 10 km</th></tr>
-              <tr><th>Type</th><th>Nom</th><th>Date de naissance</th><th>Âge</th></tr>
-            </thead>
-            <tbody><tr><td colspan="4" class="muted">En attente…</td></tr></tbody>
-          </table>
-        </div>
-        <div class="tables">
-          <table id="tbl-ages-20">
-            <thead>
-              <tr><th colspan="4">Course 20 km</th></tr>
-              <tr><th>Type</th><th>Nom</th><th>Date de naissance</th><th>Âge</th></tr>
-            </thead>
-            <tbody><tr><td colspan="4" class="muted">En attente…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+const CATEGORY_ORDER = ["CA","JU","ES","SE","M0","M1","M2","M3","M4","M5","M6","M7","M8","M9","M10"];
 
-    <div id="err" class="error" style="display:none;"></div>
-  </div>
+function renderTable(course, data, tbody){
+  const genres = Object.keys(data).sort();
+  const rows = [];
+  let totalGeneral = 0;
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
-      authDomain: "calor-run.firebaseapp.com",
-      databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "calor-run",
-      storageBucket: "calor-run.firebasestorage.app",
-      messagingSenderId: "329949291334",
-      appId: "1:329949291334:web:c71ef20268c609cf953b47",
-      measurementId: "G-YVQPW6JGPK"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    const el = {
-      counts10Body: document.querySelector('#tbl-counts-10 tbody'),
-      counts10Foot: document.querySelector('#tbl-counts-10 tfoot'),
-      counts20Body: document.querySelector('#tbl-counts-20 tbody'),
-      counts20Foot: document.querySelector('#tbl-counts-20 tfoot'),
-      ages10Body: document.querySelector('#tbl-ages-10 tbody'),
-      ages20Body: document.querySelector('#tbl-ages-20 tbody'),
-      err: document.getElementById('err'),
-      lastUpdate: document.querySelector('#last-update span')
-    };
-
-    const today = new Date();
-
-    function parseBirthdate(value) {
-      if (!value) return null;
-      if (typeof value === 'number' && value > 1900) return new Date(value,0,1);
-      const raw = String(value).trim();
-      if (/^\\d{4}$/.test(raw)) return new Date(parseInt(raw,10),0,1);
-      const d = new Date(raw);
-      return isNaN(d.getTime()) ? null : d;
-    }
-    function computeAge(d) {
-      if (!d) return null;
-      let age = today.getFullYear() - d.getFullYear();
-      const m = today.getMonth()-d.getMonth();
-      if(m<0||(m===0&&today.getDate()<d.getDate())) age--;
-      return age;
-    }
-    function courseLabel(s) {
-      s = String(s||'').toLowerCase();
-      if(s.includes('10')) return '10 km';
-      if(s.includes('20')) return '20 km';
-      return s;
-    }
-
-    function renderCounts(course, counts, body, foot) {
-      const rows=[]; const subtotals={};
-      Object.keys(counts).forEach(genre=>{
-        const cats=counts[genre];
-        Object.keys(cats).forEach(cat=>{
-          const n=cats[cat];
-          rows.push(`<tr><td>${genre}</td><td>${cat||'—'}</td><td>${n}</td></tr>`);
-          subtotals[genre]=(subtotals[genre]||0)+n;
-        });
-      });
-      body.innerHTML = rows.length?rows.join(''):`<tr><td colspan="3" class="muted">Aucune donnée</td></tr>`;
-      const footRows=Object.keys(subtotals).map(g=>`<tr><td colspan="2">Total ${g}</td><td>${subtotals[g]}</td></tr>`);
-      foot.innerHTML=footRows.join('');
-    }
-
-    function renderAges(body, oldest, youngest){
-      const rows=[];
-      if(oldest) rows.push(`<tr><td>Plus âgé</td><td>${oldest.nom||''} ${oldest.prenom||''}</td><td>${oldest.naissanceRaw||'—'}</td><td>${oldest.age}</td></tr>`);
-      if(youngest) rows.push(`<tr><td>Plus jeune</td><td>${youngest.nom||''} ${youngest.prenom||''}</td><td>${youngest.naissanceRaw||'—'}</td><td>${youngest.age}</td></tr>`);
-      body.innerHTML=rows.join('')||`<tr><td colspan="4" class="muted">Pas de données</td></tr>`;
-    }
-
-    db.ref('participants').on('value', snap=>{
-      const data=snap.val()||{};
-      const counts10={}, counts20={};
-      const perCourse={'10 km':{oldest:null,youngest:null},'20 km':{oldest:null,youngest:null}};
-      Object.values(data).forEach(p=>{
-        const course=courseLabel(p.course);
-        const genre=p.genre||'—'; const cat=p.categorie||'—';
-        const target=(course==='10 km')?counts10: (course==='20 km'?counts20:null);
-        if(target){
-          target[genre]=target[genre]||{}; target[genre][cat]=(target[genre][cat]||0)+1;
-          const naissanceRaw=p.dateNaissance||p.naissance||p.dob||p.anneeNaissance;
-          const d=parseBirthdate(naissanceRaw); const age=computeAge(d);
-          if(age!==null){
-            const slot=perCourse[course];
-            const pack={nom:p.nom,prenom:p.prenom,naissanceRaw,age};
-            if(!slot.oldest||age>slot.oldest.age) slot.oldest=pack;
-            if(!slot.youngest||age<slot.youngest.age) slot.youngest=pack;
-          }
-        }
-      });
-      renderCounts('10 km', counts10, el.counts10Body, el.counts10Foot);
-      renderCounts('20 km', counts20, el.counts20Body, el.counts20Foot);
-      renderAges(el.ages10Body, perCourse['10 km'].oldest, perCourse['10 km'].youngest);
-      renderAges(el.ages20Body, perCourse['20 km'].oldest, perCourse['20 km'].youngest);
-      el.lastUpdate.textContent=new Date().toLocaleTimeString('fr-FR');
-    }, err=>{
-      el.err.textContent="Erreur Firebase: "+err.message; el.err.style.display='block';
+  genres.forEach(genre=>{
+    let subtotal = 0;
+    CATEGORY_ORDER.forEach(cat=>{
+      const n = data[genre][cat] || 0;
+      subtotal += n;
+      totalGeneral += n;
+      rows.push(`<tr><td>${genre}</td><td>${cat}</td><td>${n}</td></tr>`);
     });
-  </script>
+    rows.push(`<tr class="subtotal"><td colspan="2">Sous-total ${genre}</td><td>${subtotal}</td></tr>`);
+  });
+
+  rows.push(`<tr class="total"><td colspan="2">Total général</td><td>${totalGeneral}</td></tr>`);
+  tbody.innerHTML = rows.join("");
+}
+
+function processParticipants(obj){
+  const counts = { "10 km": {}, "20 km": {} };
+
+  Object.values(obj||{}).forEach(p=>{
+    const course = (p.course||"").includes("20") ? "20 km" : "10 km";
+    const genre = (p.genre||"—").trim();
+    const cat   = (p.categorie||"—").trim();
+    counts[course][genre] = counts[course][genre] || {};
+    counts[course][genre][cat] = (counts[course][genre][cat]||0)+1;
+  });
+
+  renderTable("10 km", counts["10 km"], document.querySelector("#tbl-10 tbody"));
+  renderTable("20 km", counts["20 km"], document.querySelector("#tbl-20 tbody"));
+}
+
+db.ref("participants").on("value",snap=>{
+  processParticipants(snap.val()||{});
+});
+</script>
 </body>
 </html>
