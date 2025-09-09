@@ -5,52 +5,73 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Synthèse Participants (Firebase)</title>
 <style>
-  body { font-family: Arial, sans-serif; padding:20px; background:#fafafa; }
-  h1 { margin-bottom:12px; color:#215E99; }
-  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
-  table { border-collapse: collapse; width:100%; margin-bottom:16px; }
-  th, td { border:1px solid #ccc; padding:6px 10px; text-align:center; }
-  th { background:#215E99; color:#fff; }
-  tfoot td { font-weight:bold; background:#e3f2fd; }
+  :root {
+    --bg: #f9f9f9;
+    --card: #fff;
+    --line: #e5e5e5;
+    --head-grad: linear-gradient(135deg, #215E99 0%, #E61780 100%);
+  }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    padding: 24px;
+    color: #111;
+  }
+  h1 { color:#215E99; margin-bottom:16px; }
+  h2 { margin-bottom:12px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .card {
+    background: var(--card);
+    border-radius:12px;
+    border:1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    padding:16px;
+  }
+  table { border-collapse:collapse; width:100%; }
+  th, td { border:1px solid var(--line); padding:8px 10px; text-align:center; }
+  th { color:#fff; background: var(--head-grad); }
+  tbody tr:nth-child(odd){ background:#fff; }
+  tbody tr:nth-child(even){ background:#f2f2f2; }
+  tfoot td { font-weight:bold; background:#eef1f5; }
 </style>
 </head>
 <body>
 
 <h1>Synthèse des participants</h1>
+
 <div class="grid2">
-  <div>
+  <div class="card">
     <h2>Course 10 km</h2>
     <table id="tbl-10">
       <thead>
         <tr>
           <th>Catégorie</th>
-          <th>Femmes</th><th>Nombre</th>
-          <th>Hommes</th><th>Nombre</th>
+          <th>Femmes</th>
+          <th>Hommes</th>
           <th>Total</th>
         </tr>
       </thead>
-      <tbody><tr><td colspan="6">Chargement…</td></tr></tbody>
+      <tbody><tr><td colspan="4">Chargement…</td></tr></tbody>
       <tfoot></tfoot>
     </table>
   </div>
-  <div>
+  <div class="card">
     <h2>Course 20 km</h2>
     <table id="tbl-20">
       <thead>
         <tr>
           <th>Catégorie</th>
-          <th>Femmes</th><th>Nombre</th>
-          <th>Hommes</th><th>Nombre</th>
+          <th>Nombre F</th>
+          <th>Nombre H</th>
           <th>Total</th>
         </tr>
       </thead>
-      <tbody><tr><td colspan="6">Chargement…</td></tr></tbody>
+      <tbody><tr><td colspan="4">Chargement…</td></tr></tbody>
       <tfoot></tfoot>
     </table>
   </div>
 </div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
@@ -72,61 +93,49 @@ const CAT_ORDER = ["CA","JU","ES","SE","M0","M1","M2","M3","M4","M5","M6","M7","
 
 function renderTable(data, tbody, tfoot){
   const rows = [];
-  let totF = 0, totH = 0, totAll = 0;
-
+  let totF=0, totH=0, totAll=0;
   CAT_ORDER.forEach(cat=>{
     const femmes = data[cat]?.F || 0;
     const hommes = data[cat]?.H || 0;
-    const total  = femmes + hommes;
+    const total = femmes + hommes;
     totF += femmes; totH += hommes; totAll += total;
-    rows.push(`
-      <tr>
-        <td>${cat}</td>
-        <td>F</td><td>${femmes}</td>
-        <td>H</td><td>${hommes}</td>
-        <td>${total}</td>
-      </tr>
-    `);
+    rows.push(`<tr>
+      <td>${cat}</td>
+      <td>${femmes}</td>
+      <td>${hommes}</td>
+      <td>${total}</td>
+    </tr>`);
   });
-
   tbody.innerHTML = rows.join('');
-  tfoot.innerHTML = `
-    <tr>
-      <td>Totaux</td>
-      <td>F</td><td>${totF}</td>
-      <td>H</td><td>${totH}</td>
-      <td>${totAll}</td>
-    </tr>
-  `;
+  tfoot.innerHTML = `<tr>
+    <td>Totaux</td>
+    <td>${totF}</td>
+    <td>${totH}</td>
+    <td>${totAll}</td>
+  </tr>`;
 }
 
 function processParticipants(obj){
-  const data10 = {}, data20 = {};
+  const data10={}, data20={};
   Object.values(obj||{}).forEach(p=>{
-    const course = (p.course === 20) ? "20" : "10";
-    const genre  = (p.genre||"").toUpperCase();
-    const cat    = (p.categorie||"—").toUpperCase();
-
+    const course = (p.course===20)?"20":"10";
+    const genre = (p.genre||"").toUpperCase();
+    const cat   = (p.categorie||"—").toUpperCase();
     if(course==="10"){
-      data10[cat] = data10[cat] || {F:0,H:0};
+      data10[cat] = data10[cat]||{F:0,H:0};
       if(genre==="F") data10[cat].F++;
       else if(genre==="H") data10[cat].H++;
     } else {
-      data20[cat] = data20[cat] || {F:0,H:0};
+      data20[cat] = data20[cat]||{F:0,H:0};
       if(genre==="F") data20[cat].F++;
       else if(genre==="H") data20[cat].H++;
     }
   });
-
-  renderTable(data10,
-    document.querySelector('#tbl-10 tbody'),
-    document.querySelector('#tbl-10 tfoot'));
-  renderTable(data20,
-    document.querySelector('#tbl-20 tbody'),
-    document.querySelector('#tbl-20 tfoot'));
+  renderTable(data10, document.querySelector('#tbl-10 tbody'), document.querySelector('#tbl-10 tfoot'));
+  renderTable(data20, document.querySelector('#tbl-20 tbody'), document.querySelector('#tbl-20 tfoot'));
 }
 
-// Écoute Firebase
+// Firebase
 db.ref('participants').on('value', snap=>{
   processParticipants(snap.val()||{});
 });
