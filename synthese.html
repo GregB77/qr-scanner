@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Stats Calor Run</title>
+<title>Synthèse Participants</title>
 <style>
 :root {
   --bg:#f9f9f9; --card:#fff; --line:#e5e5e5; --head-grad: linear-gradient(135deg,#215E99 0%,#E61780 100%);
@@ -32,10 +32,10 @@ tbody tr:nth-child(even){background:#f2f2f2;}
 
 <div class="wrap">
 
-  <!-- 1er double tableau : Catégories -->
+  <!-- Double tableau catégories -->
   <div class="grid2">
     <section class="card">
-      <h2>Course 10 km - Catégories</h2>
+      <h2>10 km - Catégories</h2>
       <div class="tables">
         <table id="tbl-cat-10">
           <thead>
@@ -46,7 +46,7 @@ tbody tr:nth-child(even){background:#f2f2f2;}
       </div>
     </section>
     <section class="card">
-      <h2>Course 20 km - Catégories</h2>
+      <h2>20 km - Catégories</h2>
       <div class="tables">
         <table id="tbl-cat-20">
           <thead>
@@ -58,10 +58,10 @@ tbody tr:nth-child(even){background:#f2f2f2;}
     </section>
   </div>
 
-  <!-- 2e double tableau : Ages extrêmes -->
+  <!-- Double tableau âges extrêmes -->
   <div class="grid2">
     <section class="card">
-      <h2>Course 10 km - Ages extrêmes</h2>
+      <h2>10 km - Âges extrêmes</h2>
       <div class="tables">
         <table id="tbl-age-10">
           <thead>
@@ -72,7 +72,7 @@ tbody tr:nth-child(even){background:#f2f2f2;}
       </div>
     </section>
     <section class="card">
-      <h2>Course 20 km - Ages extrêmes</h2>
+      <h2>20 km - Âges extrêmes</h2>
       <div class="tables">
         <table id="tbl-age-20">
           <thead>
@@ -99,7 +99,7 @@ const firebaseConfig = {
   appId: "1:329949291334:web:c71ef20268c609cf953b47",
   measurementId: "G-YVQPW6JGPK"
 };
-const app=firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 const el={
@@ -108,6 +108,7 @@ const el={
   age10:document.querySelector('#tbl-age-10 tbody'),
   age20:document.querySelector('#tbl-age-20 tbody')
 };
+
 const catOrder=['CA','JU','ES','SE','M0','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10'];
 
 function parseBirthdate(value){if(!value)return null; const d=new Date(value); return isNaN(d.getTime())?null:d;}
