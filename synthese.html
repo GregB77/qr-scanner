@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stats Calor Run</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <style>
 :root {
   --bg:#f9f9f9; --fg:#111; --card:#fff; --line:#e5e5e5; --head-grad:linear-gradient(135deg,#215E99 0%,#E61780 100%);
@@ -14,19 +13,13 @@ h1{font-size:2rem;margin-bottom:8px;color:#215E99;}
 .wrap{display:grid;gap:20px;}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;}
 .card h2{font-size:1.1rem;margin-bottom:12px;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-@media(max-width:900px){.grid2{grid-template-columns:1fr;}}
 .tables{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;min-width:320px;}
+table{width:100%;border-collapse:collapse;min-width:640px;}
 th,td{border:1px solid var(--line);padding:6px 8px;text-align:center;font-size:.95rem;}
 th{color:#fff;font-weight:700;background:var(--head-grad);}
 tbody tr:nth-child(odd){background:#fff;}
 tbody tr:nth-child(even){background:#f2f2f2;}
 .muted{color:#777;}
-.pulse{animation:pulse 1s infinite;}
-@keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.05);}100%{transform:scale(1);}}
-.loading,.error{text-align:center;padding:14px;}
-.error{color:#b00020;font-weight:600;}
 </style>
 </head>
 <body>
@@ -35,41 +28,38 @@ tbody tr:nth-child(even){background:#f2f2f2;}
 
 <section class="card">
 <h2>Répartition par catégories</h2>
-<div class="grid2">
-  <div class="tables">
-    <table id="tbl-cat-10">
-      <thead>
-        <tr><th>Catégorie</th><th>Nombre F</th><th>Nombre H</th><th>Total</th></tr>
-      </thead>
-      <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
-    </table>
-  </div>
-  <div class="tables">
-    <table id="tbl-cat-20">
-      <thead>
-        <tr><th>Catégorie</th><th>Nombre F</th><th>Nombre H</th><th>Total</th></tr>
-      </thead>
-      <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
-    </table>
-  </div>
+<div class="tables">
+  <table id="tbl-cat">
+    <thead>
+      <tr>
+        <th>Catégorie</th>
+        <th>Femmes (10km)</th>
+        <th>Hommes (10km)</th>
+        <th>Total (10km)</th>
+        <th>Femmes (20km)</th>
+        <th>Hommes (20km)</th>
+        <th>Total (20km)</th>
+        <th>Total général</th>
+      </tr>
+    </thead>
+    <tbody><tr><td colspan="8" class="muted">Chargement…</td></tr></tbody>
+  </table>
 </div>
 </section>
 
 <section class="card">
 <h2>Âges extrêmes</h2>
-<div class="grid2">
-  <div class="tables">
-    <table id="tbl-age-10">
-      <thead><tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr></thead>
-      <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
-    </table>
-  </div>
-  <div class="tables">
-    <table id="tbl-age-20">
-      <thead><tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr></thead>
-      <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
-    </table>
-  </div>
+<div class="tables">
+  <table id="tbl-age-10">
+    <thead><tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr></thead>
+    <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
+  </table>
+</div>
+<div class="tables">
+  <table id="tbl-age-20">
+    <thead><tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr></thead>
+    <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
+  </table>
 </div>
 </section>
 
@@ -90,12 +80,11 @@ const firebaseConfig = {
   messagingSenderId:"329949291334",
   appId:"1:329949291334:web:c71ef20268c609cf953b47"
 };
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 const el = {
-  cat10: document.querySelector('#tbl-cat-10 tbody'),
-  cat20: document.querySelector('#tbl-cat-20 tbody'),
+  cat: document.querySelector('#tbl-cat tbody'),
   age10: document.querySelector('#tbl-age-10 tbody'),
   age20: document.querySelector('#tbl-age-20 tbody'),
   err: document.getElementById('err')
@@ -106,33 +95,46 @@ const orderCat = ['CA','JU','ES','SE','M0','M1','M2','M3','M4','M5','M6','M7','M
 function parseDate(d){if(!d)return null;const dt=new Date(d);return isNaN(dt.getTime())?null:dt;}
 function computeAge(d){if(!d)return null;const today=new Date();let a=today.getFullYear()-d.getFullYear();if(today.getMonth()<d.getMonth()||(today.getMonth()===d.getMonth()&&today.getDate()<d.getDate()))a--;return a;}
 
-function renderCats(body10, body20, data){
+function renderCats(body, data){
   const counts = {10:{},20:{}};
   Object.values(data||{}).forEach(p=>{
     const course = Number(p.course)||0;
     const cat = p.categorie||'—';
     const genre = (p.genre||'').toLowerCase();
-    counts[course] = counts[course]||{};
     counts[course][cat] = counts[course][cat]||{f:0,h:0};
     if(genre==='f' || genre==='femme') counts[course][cat].f++;
     else counts[course][cat].h++;
   });
 
-  function buildRows(countObj){
-    const rows=[];
-    let totF=0,totH=0;
-    orderCat.forEach(cat=>{
-      const val = countObj[cat]||{f:0,h:0};
-      const total = val.f+val.h;
-      rows.push(`<tr><td>${cat}</td><td>${val.f}</td><td>${val.h}</td><td>${total}</td></tr>`);
-      totF+=val.f; totH+=val.h;
-    });
-    const totalT = totF+totH;
-    rows.push(`<tr style="font-weight:700"><td>Totaux</td><td>${totF} (${Math.round(100*totF/totalT)}%)</td><td>${totH} (${Math.round(100*totH/totalT)}%)</td><td>${totalT}</td></tr>`);
-    return rows.join('');
-  }
-  body10.innerHTML = buildRows(counts[10]||{});
-  body20.innerHTML = buildRows(counts[20]||{});
+  const rows=[];
+  let tot10f=0,tot10h=0,tot20f=0,tot20h=0;
+  orderCat.forEach(cat=>{
+    const v10 = counts[10][cat]||{f:0,h:0};
+    const v20 = counts[20][cat]||{f:0,h:0};
+    const t10 = v10.f+v10.h;
+    const t20 = v20.f+v20.h;
+    const total = t10+t20;
+    rows.push(`<tr>
+      <td>${cat}</td>
+      <td>${v10.f}</td><td>${v10.h}</td><td>${t10}</td>
+      <td>${v20.f}</td><td>${v20.h}</td><td>${t20}</td>
+      <td>${total}</td>
+    </tr>`);
+    tot10f+=v10.f; tot10h+=v10.h;
+    tot20f+=v20.f; tot20h+=v20.h;
+  });
+
+  const tot10 = tot10f+tot10h;
+  const tot20 = tot20f+tot20h;
+  const grandTotal = tot10+tot20;
+  rows.push(`<tr style="font-weight:700">
+    <td>Totaux</td>
+    <td>${tot10f}</td><td>${tot10h}</td><td>${tot10}</td>
+    <td>${tot20f}</td><td>${tot20h}</td><td>${tot20}</td>
+    <td>${grandTotal}</td>
+  </tr>`);
+
+  body.innerHTML = rows.join('');
 }
 
 function renderAges(body10, body20, data){
@@ -163,7 +165,7 @@ function showError(msg){el.err.style.display='block';el.err.textContent=msg;}
 db.ref('participants').on('value',snap=>{
   try{
     const data = snap.val()||{};
-    renderCats(el.cat10,el.cat20,data);
+    renderCats(el.cat,data);
     renderAges(el.age10,el.age20,data);
   }catch(e){
     console.error(e);
