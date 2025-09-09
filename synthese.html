@@ -6,19 +6,45 @@
 <title>Synthèse Participants</title>
 <style>
 :root {
-  --bg:#f9f9f9; --card:#fff; --line:#e5e5e5; --head-grad: linear-gradient(135deg,#215E99 0%,#E61780 100%);
+  --bg:#f9f9f9;
+  --card:#fff;
+  --line:#e5e5e5;
+  --head-grad: linear-gradient(135deg,#215E99 0%,#E61780 100%);
   --fg:#111;
 }
-body {font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:24px;}
+body {
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--fg);
+  padding:24px;
+}
 h1 {color:#215E99;margin-bottom:16px;}
 .wrap {display:grid;gap:20px;}
-.grid2 {display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-@media(max-width:900px){.grid2{grid-template-columns:1fr;}}
-.card {background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;}
-.tables {overflow-x:auto;}
-table {width:100%;border-collapse:collapse;min-width:300px;margin-bottom:16px;}
-th,td {border:1px solid var(--line);padding:8px 10px;text-align:center;font-size:.95rem;}
-th {color:#fff;font-weight:700;background:var(--head-grad);}
+.card {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+  padding:16px;
+}
+.card h2 {margin-bottom:12px;}
+.tables-grid {display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:900px){.tables-grid{grid-template-columns:1fr;}}
+table {
+  width:100%;
+  border-collapse: collapse;
+}
+th,td {
+  border:1px solid var(--line);
+  padding:8px 10px;
+  text-align:center;
+  font-size:.95rem;
+}
+th {
+  color:#fff;
+  font-weight:700;
+  background: var(--head-grad);
+}
 tbody tr:nth-child(odd){background:#fff;}
 tbody tr:nth-child(even){background:#f2f2f2;}
 .muted{color:#777;}
@@ -32,11 +58,12 @@ tbody tr:nth-child(even){background:#f2f2f2;}
 
 <div class="wrap">
 
-  <!-- Double tableau catégories -->
-  <div class="grid2">
-    <section class="card">
-      <h2>10 km - Catégories</h2>
+  <!-- Carte catégories -->
+  <section class="card">
+    <h2>Répartition par catégorie</h2>
+    <div class="tables-grid">
       <div class="tables">
+        <h3>10 km</h3>
         <table id="tbl-cat-10">
           <thead>
             <tr><th>Catégorie</th><th>Nombre F</th><th>Nombre H</th><th>Total</th></tr>
@@ -44,10 +71,8 @@ tbody tr:nth-child(even){background:#f2f2f2;}
           <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
         </table>
       </div>
-    </section>
-    <section class="card">
-      <h2>20 km - Catégories</h2>
       <div class="tables">
+        <h3>20 km</h3>
         <table id="tbl-cat-20">
           <thead>
             <tr><th>Catégorie</th><th>Nombre F</th><th>Nombre H</th><th>Total</th></tr>
@@ -55,14 +80,15 @@ tbody tr:nth-child(even){background:#f2f2f2;}
           <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
         </table>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 
-  <!-- Double tableau âges extrêmes -->
-  <div class="grid2">
-    <section class="card">
-      <h2>10 km - Âges extrêmes</h2>
+  <!-- Carte âges extrêmes -->
+  <section class="card">
+    <h2>Âges extrêmes</h2>
+    <div class="tables-grid">
       <div class="tables">
+        <h3>10 km</h3>
         <table id="tbl-age-10">
           <thead>
             <tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr>
@@ -70,10 +96,8 @@ tbody tr:nth-child(even){background:#f2f2f2;}
           <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
         </table>
       </div>
-    </section>
-    <section class="card">
-      <h2>20 km - Âges extrêmes</h2>
       <div class="tables">
+        <h3>20 km</h3>
         <table id="tbl-age-20">
           <thead>
             <tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr>
@@ -81,8 +105,8 @@ tbody tr:nth-child(even){background:#f2f2f2;}
           <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
         </table>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 
 </div>
 
