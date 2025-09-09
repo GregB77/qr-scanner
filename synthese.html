@@ -58,19 +58,44 @@ th.total, td.total {
 </section>
 
 <section class="card">
-<h2>Âges extrêmes</h2>
-<div class="tables">
-  <table id="tbl-age-10">
-    <thead><tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr></thead>
-    <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
-  </table>
-</div>
-<div class="tables">
-  <table id="tbl-age-20">
-    <thead><tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr></thead>
-    <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
-  </table>
-</div>
+  <h2>Âges extrêmes</h2>
+  <div class="tables" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    
+    <table id="tbl-age-10">
+      <thead>
+        <tr>
+          <th colspan="4">10 km</th>
+        </tr>
+        <tr>
+          <th>Dossard</th>
+          <th>Prénom</th>
+          <th>Nom</th>
+          <th>Âge</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4" class="muted">Chargement…</td></tr>
+      </tbody>
+    </table>
+
+    <table id="tbl-age-20">
+      <thead>
+        <tr>
+          <th colspan="4">20 km</th>
+        </tr>
+        <tr>
+          <th>Dossard</th>
+          <th>Prénom</th>
+          <th>Nom</th>
+          <th>Âge</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4" class="muted">Chargement…</td></tr>
+      </tbody>
+    </table>
+
+  </div>
 </section>
 
 <div id="err" class="error" style="display:none;"></div>
