@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Synthèse Participants (Firebase)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<style>
+  :root {
+    --bg: #f9f9f9;
+    --fg: #111;
+    --card: #fff;
+    --line: #e5e5e5;
+    --head-grad: linear-gradient(135deg, #215E99 0%, #E61780 100%);
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.5;
+    padding: 24px; overflow-x:hidden;
+  }
+  h1 { font-size: clamp(1.4rem, 2.5vw, 2rem); margin-bottom: 8px; color:#215E99; }
+  p.desc { margin-bottom: 18px; color:#555; }
+  .wrap { display: grid; gap: 20px; }
+  .card {
+    background: var(--card); border:1px solid var(--line); border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06); padding: 16px;
+  }
+  .card h2 { font-size: 1.1rem; margin-bottom: 12px; }
+  .toolbar { display:flex; gap: 10px; align-items:center; justify-content:space-between; margin-bottom: 8px; }
+  .hint { font-size: .9rem; color:#666; }
+  .tables { overflow-x: auto; }
+  table { width:100%; border-collapse: collapse; min-width: 720px; }
+  th, td { border:1px solid var(--line); padding: 8px 10px; text-align: center; font-size: .95rem; }
+  th {
+    color:#fff; font-weight: 700; position: sticky; top: 0; z-index: 1;
+    background: var(--head-grad);
+  }
+  tbody tr:nth-child(odd){ background:#fff; }
+  tbody tr:nth-child(even){ background:#f2f2f2; }
+  .muted { color:#777; }
+  .badge { display:inline-block; padding:.2em .5em; border-radius: 999px; font-size:.85em; background:#eef1f5; }
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px){ .grid2 { grid-template-columns: 1fr; } }
+  .loading, .error { text-align:center; padding: 14px; }
+  .error { color: #b00020; font-weight: 600; }
+</style>
+</head>
+<body>
+
+  <h1>Synthèse des participants</h1>
+  <p class="desc">Données issues de <span class="badge">Firebase / participants</span></p>
+
+  <div class="wrap">
+
+    <!-- Tableau 1 : Comptages par Course x Genre x Catégorie -->
+    <section class="card">
+      <div class="toolbar">
+        <h2>Répartition par course, genre et catégorie</h2>
+        <div class="hint" id="last-update">Dernière mise à jour : <span class="muted">—</span></div>
+      </div>
+      <div class="tables">
+        <table id="tbl-counts">
+          <thead>
+            <tr>
+              <th>Course</th>
+              <th>Genre</th>
+              <th>Catégorie</th>
+              <th>Participants</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" class="loading">Chargement…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Tableau 2 : Extrêmes d’âge par course -->
+    <section class="card">
+      <h2>Âges extrêmes par course</h2>
+      <div class="grid2">
+        <div class="tables">
+          <table id="tbl-ages-10">
+            <thead>
+              <tr>
+                <th colspan="4">Course 10 km</th>
+              </tr>
+              <tr>
+                <th>Type</th>
+                <th>Nom</th>
+                <th>Date de naissance</th>
+                <th>Âge</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="4" class="muted">En attente de données…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tables">
+          <table id="tbl-ages-20">
+            <thead>
+              <tr>
+                <th colspan="4">Course 20 km</th>
+              </tr>
+              <tr>
+                <th>Type</th>
+                <th>Nom</th>
+                <th>Date de naissance</th>
+                <th>Âge</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="4" class="muted">En attente de données…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div id="err" class="error" style="display:none;"></div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <script>
+    // --- Config Firebase (remplacer si besoin) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+      authDomain: "calor-run.firebaseapp.com",
+      databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "calor-run",
+      storageBucket: "calor-run.firebasestorage.app",
+      messagingSenderId: "329949291334",
+      appId: "1:329949291334:web:c71ef20268c609cf953b47",
+      measurementId: "G-YVQPW6JGPK"
+    };
+
+    // --- Init ---
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const el = {
+      countsBody: document.querySelector('#tbl-counts tbody'),
+      ages10Body: document.querySelector('#tbl-ages-10 tbody'),
+      ages20Body: document.querySelector('#tbl-ages-20 tbody'),
+      err: document.getElementById('err'),
+      lastUpdate: document.querySelector('#last-update span')
+    };
+
+    // --- Utils ---
+    const today = new Date();
+    function parseBirthdate(value) {
+      if (!value) return null;
+
+      // Si on reçoit un nombre (année)
+      if (typeof value === 'number') {
+        const y = value;
+        if (y > 1900 && y <= today.getFullYear()) return new Date(y, 0, 1);
+        return null;
+      }
+
+      const raw = String(value).trim();
+
+      // Format YYYY (ex: "1984")
+      if (/^\d{4}$/.test(raw)) {
+        const y = parseInt(raw, 10);
+        if (y > 1900 && y <= today.getFullYear()) return new Date(y, 0, 1);
+        return null;
+      }
+
+      // Normaliser séparateurs
+      const norm = raw.replace(/[.]/g, '/').replace(/-/g, '/');
+
+      // Essais : YYYY/MM/DD ou DD/MM/YYYY
+      const parts = norm.split('/');
+      if (parts.length === 3) {
+        // Heuristique : si la 1re part > 31 => c'est l'année en 1er
+        let y, m, d;
+        if (parseInt(parts[0], 10) > 31) {
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10) - 1;
+          d = parseInt(parts[2], 10);
+        } else if (parseInt(parts[2], 10) > 31) {
+          // cas improbable, on garde fallback
+          y = parseInt(parts[2], 10);
+          m = parseInt(parts[1], 10) - 1;
+          d = parseInt(parts[0], 10);
+        } else {
+          // suppose DD/MM/YYYY
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10) - 1;
+          y = parseInt(parts[2], 10);
+        }
+        const dt = new Date(y, m, d);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+
+      // Tentative native
+      const dtn = new Date(raw);
+      return isNaN(dtn.getTime()) ? null : dtn;
+    }
+
+    function computeAge(birthDate) {
+      if (!birthDate) return null;
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+      return age;
+    }
+
+    function courseLabel(val) {
+      const s = String(val ?? '').trim();
+      if (s === '10' || s.toLowerCase() === '10km' || s === '10 km') return '10 km';
+      if (s === '20' || s.toLowerCase() === '20km' || s === '20 km') return '20 km';
+      return s || '—';
+    }
+
+    // --- Rendu tableaux ---
+    function renderCounts(counts) {
+      // counts structure: { [course]: { [genre]: { [categorie]: n } } }
+      const rows = [];
+      const courses = Object.keys(counts).sort((a,b)=> a.localeCompare(b, 'fr'));
+
+      courses.forEach(course => {
+        const byGenre = counts[course] || {};
+        const genres = Object.keys(byGenre).sort((a,b)=> a.localeCompare(b, 'fr'));
+        genres.forEach(genre => {
+          const byCat = byGenre[genre] || {};
+          const cats = Object.keys(byCat).sort((a,b)=> a.localeCompare(b, 'fr'));
+          if (cats.length === 0) {
+            rows.push(`<tr><td>${course}</td><td>${genre || '—'}</td><td>—</td><td>0</td></tr>`);
+          } else {
+            cats.forEach(cat => {
+              rows.push(`<tr><td>${course}</td><td>${genre || '—'}</td><td>${cat || '—'}</td><td>${byCat[cat] ?? 0}</td></tr>`);
+            });
+          }
+        });
+      });
+
+      el.countsBody.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="4" class="muted">Aucune donnée.</td></tr>`;
+    }
+
+    function renderAges(tableBody, oldest, youngest) {
+      const rows = [];
+      if (oldest) {
+        rows.push(`<tr>
+          <td>Plus âgé</td>
+          <td>${oldest.nom ?? ''} ${oldest.prenom ?? ''} <span class="muted">(${oldest.dossard ?? ''})</span></td>
+          <td>${oldest.naissanceRaw ?? '—'}</td>
+          <td>${oldest.age ?? '—'}</td>
+        </tr>`);
+      }
+      if (youngest) {
+        rows.push(`<tr>
+          <td>Plus jeune</td>
+          <td>${youngest.nom ?? ''} ${youngest.prenom ?? ''} <span class="muted">(${youngest.dossard ?? ''})</span></td>
+          <td>${youngest.naissanceRaw ?? '—'}</td>
+          <td>${youngest.age ?? '—'}</td>
+        </tr>`);
+      }
+      tableBody.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="4" class="muted">Aucune donnée utile (dates de naissance manquantes).</td></tr>`;
+    }
+
+    // --- Lecture Firebase + calcul ---
+    function processParticipants(obj) {
+      // Comptages
+      const counts = {}; // course -> genre -> cat -> n
+
+      // Ages par course
+      const perCourse = {
+        '10 km': { oldest: null, youngest: null },
+        '20 km': { oldest: null, youngest: null }
+      };
+
+      const keys = Object.keys(obj || {});
+      keys.forEach(dossard => {
+        const p = obj[dossard] || {};
+        const course = courseLabel(p.course);
+        const genre = (p.genre || '').toString().trim();
+        const cat   = (p.categorie || '').toString().trim();
+
+        // ---- Tableau 1 : comptages
+        counts[course] = counts[course] || {};
+        counts[course][genre] = counts[course][genre] || {};
+        counts[course][genre][cat] = (counts[course][genre][cat] || 0) + 1;
+
+        // ---- Tableau 2 : âges
+        // On essaie plusieurs champs possibles pour la date de naissance
+        const naissanceRaw = p.dateNaissance || p.naissance || p.dob || p.birthdate || p.anneeNaissance || p.birthYear || null;
+        const dBirth = parseBirthdate(naissanceRaw);
+        const age = computeAge(dBirth);
+
+        if ((course === '10 km' || course === '20 km') && age !== null) {
+          const pack = {
+            dossard,
+            nom: p.nom || '',
+            prenom: p.prenom || '',
+            naissanceRaw: naissanceRaw || '—',
+            age
+          };
+          const slot = perCourse[course];
+
+          // Oldest = âge le plus grand
+          if (!slot.oldest || age > slot.oldest.age) slot.oldest = pack;
+          // Youngest = âge le plus petit
+          if (!slot.youngest || age < slot.youngest.age) slot.youngest = pack;
+        }
+      });
+
+      // Rendu
+      renderCounts(counts);
+      renderAges(el.ages10Body, (perCourse['10 km']||{}).oldest, (perCourse['10 km']||{}).youngest);
+      renderAges(el.ages20Body, (perCourse['20 km']||{}).oldest, (perCourse['20 km']||{}).youngest);
+
+      // Last update
+      el.lastUpdate.textContent = new Date().toLocaleTimeString('fr-FR');
+    }
+
+    function showError(msg) {
+      el.err.textContent = msg;
+      el.err.style.display = 'block';
+    }
+
+    // --- Abonnement temps réel ---
+    db.ref('participants').on('value',
+      snap => {
+        try {
+          const data = snap.val() || {};
+          processParticipants(data);
+        } catch (e) {
+          console.error(e);
+          showError("Erreur lors du calcul : " + e.message);
+        }
+      },
+      err => {
+        console.error(err);
+        showError("Erreur de connexion Firebase : " + err.message);
+      }
+    );
+  </script>
+</body>
+</html>
