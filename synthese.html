@@ -58,14 +58,11 @@ th.total, td.total {
 </section>
 
 <section class="card">
-  <h2>Âges extrêmes</h2>
+  <h2>-/+ Âgés — 10 km | 20 km</h2>
   <div class="tables" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
     
     <table id="tbl-age-10">
       <thead>
-        <tr>
-          <th colspan="4">10 km</th>
-        </tr>
         <tr>
           <th>Dossard</th>
           <th>Prénom</th>
@@ -81,9 +78,6 @@ th.total, td.total {
     <table id="tbl-age-20">
       <thead>
         <tr>
-          <th colspan="4">20 km</th>
-        </tr>
-        <tr>
           <th>Dossard</th>
           <th>Prénom</th>
           <th>Nom</th>
@@ -97,6 +91,7 @@ th.total, td.total {
 
   </div>
 </section>
+
 
 <div id="err" class="error" style="display:none;"></div>
 </div>
@@ -195,7 +190,7 @@ function renderAges(body10, body20, data){
     }
   });
 
-  function buildRows(a){return [a.oldest,a.youngest].filter(Boolean).map(p=>`<tr><td>${p.dossard}</td><td>${p.prenom}</td><td>${p.nom}</td><td>${p.age}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">Aucune donnée.</td></tr>'; }
+  function buildRows(a){return [a.oldest,a.youngest].filter(Boolean).map(p=>`<tr><td>${p.dossard}</td><td>${p.prenom}</td><td>${p.nom}</td><td>${p.age} ans</td></tr>`).join('')||'<tr><td colspan="4" class="muted">Aucune donnée.</td></tr>'; }
   body10.innerHTML=buildRows(ages[10]);
   body20.innerHTML=buildRows(ages[20]);
 }
