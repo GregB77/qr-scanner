@@ -3,66 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Synthèse Participants</title>
+<title>Synthèse complète participants</title>
 <style>
-  :root {
-    --bg:#f9f9f9;
-    --card:#fff;
-    --line:#e5e5e5;
-    --head-grad: linear-gradient(135deg,#215E99 0%,#E61780 100%);
-    --fg:#111;
-  }
-  body {font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:24px;}
-  h1 {color:#215E99;margin-bottom:8px;}
-  .wrap {display:grid;gap:20px;}
-  .card {background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;}
-  .tables {overflow-x:auto;}
-  table {width:100%;border-collapse:collapse;min-width:320px;}
-  th,td {border:1px solid var(--line);padding:8px 10px;text-align:center;font-size:.95rem;}
-  th {color:#fff;font-weight:700;background:var(--head-grad);}
-  tbody tr:nth-child(odd){background:#fff;}
-  tbody tr:nth-child(even){background:#f2f2f2;}
-  .grid2 {display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:900px){.grid2{grid-template-columns:1fr;}}
-  .muted{color:#777;}
-  .badge{display:inline-block;padding:.2em .5em;border-radius:999px;font-size:.85em;background:#eef1f5;}
+:root {
+  --bg:#f9f9f9; --card:#fff; --line:#e5e5e5; --head-grad: linear-gradient(135deg,#215E99 0%,#E61780 100%);
+  --fg:#111;
+}
+body {font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:24px;}
+h1 {color:#215E99;margin-bottom:8px;}
+.wrap {display:grid;gap:20px;}
+.card {background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;}
+.tables {overflow-x:auto;}
+table {width:100%;border-collapse:collapse;min-width:320px;margin-bottom:16px;}
+th,td {border:1px solid var(--line);padding:8px 10px;text-align:center;font-size:.95rem;}
+th {color:#fff;font-weight:700;background:var(--head-grad);}
+tbody tr:nth-child(odd){background:#fff;}
+tbody tr:nth-child(even){background:#f2f2f2;}
+.grid2 {display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:900px){.grid2{grid-template-columns:1fr;}}
+.muted{color:#777;}
+.badge{display:inline-block;padding:.2em .5em;border-radius:999px;font-size:.85em;background:#eef1f5;}
+h2{margin-bottom:12px;}
 </style>
 </head>
 <body>
 
-<h1>Synthèse des participants</h1>
+<h1>Synthèse complète des participants</h1>
 <p class="desc">Données issues de <span class="badge">Firebase / participants</span></p>
 
 <div class="wrap">
-  <section class="card">
-    <h2>Âges extrêmes par course</h2>
-    <div class="grid2">
-      <div class="tables">
-        <table id="tbl-ages-10">
-          <thead>
-            <tr><th colspan="4">Course 10 km</th></tr>
-            <tr><th>Type</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr>
-          </thead>
-          <tbody><tr><td colspan="4" class="muted">En attente de données…</td></tr></tbody>
-        </table>
-      </div>
-      <div class="tables">
-        <table id="tbl-ages-20">
-          <thead>
-            <tr><th colspan="4">Course 20 km</th></tr>
-            <tr><th>Type</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr>
-          </thead>
-          <tbody><tr><td colspan="4" class="muted">En attente de données…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-</div>
 
-<!-- Firebase SDK -->
+<section class="card">
+  <h2>Course 10 km</h2>
+  <div class="tables">
+    <table id="tbl-10">
+      <thead>
+        <tr><th>Catégorie</th><th>Nombre F</th><th>Nombre H</th><th>Total</th></tr>
+      </thead>
+      <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Course 20 km</h2>
+  <div class="tables">
+    <table id="tbl-20">
+      <thead>
+        <tr><th>Catégorie</th><th>Nombre F</th><th>Nombre H</th><th>Total</th></tr>
+      </thead>
+      <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
@@ -74,56 +70,66 @@ const firebaseConfig = {
   appId: "1:329949291334:web:c71ef20268c609cf953b47",
   measurementId: "G-YVQPW6JGPK"
 };
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const app=firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
 
-const el = {
-  ages10Body: document.querySelector('#tbl-ages-10 tbody'),
-  ages20Body: document.querySelector('#tbl-ages-20 tbody')
-};
+const el={tbl10:document.querySelector('#tbl-10 tbody'),tbl20:document.querySelector('#tbl-20 tbody')};
+const catOrder=['CA','JU','ES','SE','M0','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10'];
 
-function parseBirthdate(value){
-  if(!value) return null;
-  const d = new Date(value);
-  return isNaN(d.getTime()) ? null : d;
-}
-function computeAge(d){
-  if(!d) return null;
-  const today = new Date();
-  let age = today.getFullYear()-d.getFullYear();
-  if(today.getMonth()<d.getMonth()||(today.getMonth()===d.getMonth()&&today.getDate()<d.getDate())) age--;
-  return age;
-}
-function renderAges(tableBody, oldest, youngest){
-  const rows=[];
-  if(oldest) rows.push(`<tr><td>Plus âgé</td><td>${oldest.prenom}</td><td>${oldest.nom}</td><td>${oldest.age}</td></tr>`);
-  if(youngest) rows.push(`<tr><td>Plus jeune</td><td>${youngest.prenom}</td><td>${youngest.nom}</td><td>${youngest.age}</td></tr>`);
-  tableBody.innerHTML=rows.length?rows.join(''):`<tr><td colspan="4" class="muted">Aucune donnée utile</td></tr>`;
+function parseBirthdate(value){if(!value)return null; const d=new Date(value); return isNaN(d.getTime())?null:d;}
+function computeAge(d){if(!d)return null; const today=new Date(); let age=today.getFullYear()-d.getFullYear(); if(today.getMonth()<d.getMonth()||(today.getMonth()===d.getMonth()&&today.getDate()<d.getDate())) age--; return age;}
+
+function renderTable(tableBody, counts, ages){
+  let rows=[];
+  let totalF=0,totalH=0;
+  catOrder.forEach(cat=>{
+    const nF=counts[cat]?.F||0;
+    const nH=counts[cat]?.H||0;
+    const total=nF+nH;
+    totalF+=nF; totalH+=nH;
+    rows.push(`<tr><td>${cat}</td><td>${nF}</td><td>${nH}</td><td>${total}</td></tr>`);
+  });
+  const grandTotal=totalF+totalH;
+  const percF=grandTotal?Math.round(totalF*100/grandTotal):0;
+  const percH=grandTotal?Math.round(totalH*100/grandTotal):0;
+  rows.push(`<tr style="font-weight:700;"><td>Totaux</td><td>${totalF} (${percF}%)</td><td>${totalH} (${percH}%)</td><td>${grandTotal}</td></tr>`);
+
+  // Ajout ligne âges extrêmes
+  if(ages.oldest) rows.push(`<tr style="background:#eef1f5;font-weight:600;"><td>Dossard: ${ages.oldest.dossard}</td><td>${ages.oldest.prenom}</td><td>${ages.oldest.nom}</td><td>${ages.oldest.age}</td></tr>`);
+  if(ages.youngest) rows.push(`<tr style="background:#eef1f5;font-weight:600;"><td>Dossard: ${ages.youngest.dossard}</td><td>${ages.youngest.prenom}</td><td>${ages.youngest.nom}</td><td>${ages.youngest.age}</td></tr>`);
+
+  tableBody.innerHTML=rows.join('');
 }
 
 db.ref('participants').on('value',snap=>{
-  try{
-    const data = snap.val()||{};
-    const ages10={oldest:null, youngest:null};
-    const ages20={oldest:null, youngest:null};
-    Object.values(data).forEach(p=>{
-      const course = Number(p.course);
-      const birth=parseBirthdate(p.date_naiss);
-      const age=computeAge(birth);
+  const data=snap.val()||{};
+  const counts10={},counts20={};
+  const ages10={oldest:null,youngest:null},ages20={oldest:null,youngest:null};
+  Object.values(data).forEach(p=>{
+    const course=Number(p.course);
+    const cat=p.categorie||'—';
+    const genre=(p.genre||'').toUpperCase();
+    const birth=parseBirthdate(p.date_naiss);
+    const age=computeAge(birth);
+    const pack={dossard:p.dossard||'',prenom:p.prenom||'',nom:p.nom||'',age};
+    if(course===10){
+      if(!counts10[cat]) counts10[cat]={F:0,H:0};
+      if(genre==='F') counts10[cat].F++; else counts10[cat].H++;
       if(age!==null){
-        const pack={dossard:p.dossard||'', nom:p.nom||'', prenom:p.prenom||'', age};
-        if(course===10){
-          if(!ages10.oldest||age>ages10.oldest.age) ages10.oldest=pack;
-          if(!ages10.youngest||age<ages10.youngest.age) ages10.youngest=pack;
-        } else if(course===20){
-          if(!ages20.oldest||age>ages20.oldest.age) ages20.oldest=pack;
-          if(!ages20.youngest||age<ages20.youngest.age) ages20.youngest=pack;
-        }
+        if(!ages10.oldest||age>ages10.oldest.age) ages10.oldest=pack;
+        if(!ages10.youngest||age<ages10.youngest.age) ages10.youngest=pack;
       }
-    });
-    renderAges(el.ages10Body, ages10.oldest, ages10.youngest);
-    renderAges(el.ages20Body, ages20.oldest, ages20.youngest);
-  }catch(e){console.error(e);}
+    } else if(course===20){
+      if(!counts20[cat]) counts20[cat]={F:0,H:0};
+      if(genre==='F') counts20[cat].F++; else counts20[cat].H++;
+      if(age!==null){
+        if(!ages20.oldest||age>ages20.oldest.age) ages20.oldest=pack;
+        if(!ages20.youngest||age<ages20.youngest.age) ages20.youngest=pack;
+      }
+    }
+  });
+  renderTable(el.tbl10,counts10,ages10);
+  renderTable(el.tbl20,counts20,ages20);
 });
 </script>
 
