@@ -51,6 +51,8 @@
 <p class="desc">Données issues de <span class="badge">Firebase / participants</span></p> -->
 
 <div class="wrap">
+
+  <!-- Tableau synthèse 10km / 20km -->
   <section class="card">
     <h2>Répartition par catégorie (10 km et 20 km)</h2>
     <div class="grid2">
@@ -93,6 +95,49 @@
     </div>
   </section>
 
+  <!-- Tableau âges extrêmes -->
+  <section class="card">
+    <h2>Participants les plus âgés et les plus jeunes</h2>
+    <div class="grid2">
+      <div class="tables">
+        <table id="ages-10">
+          <thead>
+            <tr>
+              <th colspan="4">Course 10 km</th>
+            </tr>
+            <tr>
+              <th>Dossard</th>
+              <th>Prénom</th>
+              <th>Nom</th>
+              <th>Âge</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" class="muted">En attente de données…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tables">
+        <table id="ages-20">
+          <thead>
+            <tr>
+              <th colspan="4">Course 20 km</th>
+            </tr>
+            <tr>
+              <th>Dossard</th>
+              <th>Prénom</th>
+              <th>Nom</th>
+              <th>Âge</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" class="muted">En attente de données…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <div id="err" class="error" style="display:none;"></div>
 </div>
 
@@ -114,12 +159,13 @@ const firebaseConfig = {
 
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
 const CAT_ORDER = ["CA","JU","ES","SE","M0","M1","M2","M3","M4","M5","M6","M7","M8","M9","M10"];
 
 const el = {
   tbl10: { body: document.querySelector('#tbl-10 tbody'), foot: document.querySelector('#tbl-10 tfoot') },
   tbl20: { body: document.querySelector('#tbl-20 tbody'), foot: document.querySelector('#tbl-20 tfoot') },
+  ages10: document.querySelector('#ages-10 tbody'),
+  ages20: document.querySelector('#ages-20 tbody'),
   err: document.getElementById('err')
 };
 
@@ -155,42 +201,86 @@ function renderTable(tableEl, data){
   </tr>`;
 }
 
-db.ref('participants').on('value',
-  snap => {
-    try {
-      const data = snap.val() || {};
-      const summary10 = {};
-      const summary20 = {};
+function parseBirthdate(value){
+  if (!value) return null;
+  const y = Number(value);
+  if (!isNaN(y) && y > 1900 && y <= new Date().getFullYear()) return new Date(y,0,1);
+  return new Date(value);
+}
 
-      Object.values(data).forEach(p => {
-        const cat = (p.categorie || '').toString().trim();
-        const genre = (p.genre || '').toString().trim().toUpperCase();
-        const course = Number(p.course);
-        if (!CAT_ORDER.includes(cat)) return;
+function computeAge(d){ 
+  if(!d || isNaN(d)) return null;
+  let age = new Date().getFullYear() - d.getFullYear();
+  const m = new Date().getMonth() - d.getMonth();
+  if(m<0 || (m===0 && new Date().getDate() < d.getDate())) age--;
+  return age;
+}
 
-        const target = course === 10 ? summary10 : course === 20 ? summary20 : null;
-        if (!target) return;
+function renderAges(tableBody, oldest, youngest){
+  const rows = [];
+  if(oldest) rows.push(`<tr>
+    <td>${oldest.dossard}</td>
+    <td>${oldest.prenom}</td>
+    <td>${oldest.nom}</td>
+    <td>${oldest.age}</td>
+  </tr>`);
+  if(youngest) rows.push(`<tr>
+    <td>${youngest.dossard}</td>
+    <td>${youngest.prenom}</td>
+    <td>${youngest.nom}</td>
+    <td>${youngest.age}</td>
+  </tr>`);
+  tableBody.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="4" class="muted">Aucune donnée utile</td></tr>`;
+}
 
-        target[cat] = target[cat] || {};
-        if (genre === 'F' || genre === 'FEMME') target[cat].F = (target[cat].F||0)+1;
-        else target[cat].H = (target[cat].H||0)+1;
-      });
+db.ref('participants').on('value', snap=>{
+  try{
+    const data = snap.val() || {};
+    const summary10 = {}, summary20 = {};
+    let ages10 = {oldest:null, youngest:null}, ages20={oldest:null, youngest:null};
 
-      renderTable(el.tbl10, summary10);
-      renderTable(el.tbl20, summary20);
+    Object.values(data).forEach(p=>{
+      const cat = (p.categorie||'').toString().trim();
+      const genre = (p.genre||'').toString().trim().toUpperCase();
+      const course = Number(p.course);
 
-    } catch(e){
-      console.error(e);
-      el.err.style.display='block';
-      el.err.textContent="Erreur : "+e.message;
-    }
-  },
-  err => {
-    console.error(err);
+      // Tableau catégories
+      if(CAT_ORDER.includes(cat)){
+        const target = course===10 ? summary10 : course===20 ? summary20 : null;
+        if(target){
+          target[cat] = target[cat]||{};
+          if(genre==='F' || genre==='FEMME') target[cat].F = (target[cat].F||0)+1;
+          else target[cat].H = (target[cat].H||0)+1;
+        }
+      }
+
+      // Tableau âges
+      const birth = parseBirthdate(p.dateNaissance||p.naissance||p.dob||p.birthdate||p.anneeNaissance||p.birthYear);
+      const age = computeAge(birth);
+      if(age!==null && (course===10 || course===20)){
+        const pack = {dossard:p.dossard||'', nom:p.nom||'', prenom:p.prenom||'', age};
+        const slot = course===10 ? ages10 : ages20;
+        if(!slot.oldest || age>slot.oldest.age) slot.oldest=pack;
+        if(!slot.youngest || age<slot.youngest.age) slot.youngest=pack;
+      }
+    });
+
+    renderTable(el.tbl10, summary10);
+    renderTable(el.tbl20, summary20);
+    renderAges(el.ages10, ages10.oldest, ages10.youngest);
+    renderAges(el.ages20, ages20.oldest, ages20.youngest);
+
+  }catch(e){
+    console.error(e);
     el.err.style.display='block';
-    el.err.textContent="Erreur de connexion Firebase : "+err.message;
+    el.err.textContent="Erreur : "+e.message;
   }
-);
+}, err=>{
+  console.error(err);
+  el.err.style.display='block';
+  el.err.textContent="Erreur de connexion Firebase : "+err.message;
+});
 </script>
+
 </body>
 </html>
