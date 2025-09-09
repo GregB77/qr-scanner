@@ -30,7 +30,7 @@
   .toolbar { display:flex; gap: 10px; align-items:center; justify-content:space-between; margin-bottom: 8px; }
   .hint { font-size: .9rem; color:#666; }
   .tables { overflow-x: auto; }
-  table { width:100%; border-collapse: collapse; min-width: 720px; }
+  table { width:100%; border-collapse: collapse; min-width: 360px; }
   th, td { border:1px solid var(--line); padding: 8px 10px; text-align: center; font-size: .95rem; }
   th {
     color:#fff; font-weight: 700; position: sticky; top: 0; z-index: 1;
@@ -38,6 +38,7 @@
   }
   tbody tr:nth-child(odd){ background:#fff; }
   tbody tr:nth-child(even){ background:#f2f2f2; }
+  tfoot td { font-weight: bold; background:#eee; }
   .muted { color:#777; }
   .badge { display:inline-block; padding:.2em .5em; border-radius: 999px; font-size:.85em; background:#eef1f5; }
   .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -53,67 +54,56 @@
 
   <div class="wrap">
 
-    <!-- Tableau 1 : Comptages par Course x Genre x Catégorie -->
+    <!-- Tableau 1 : Comptages par Genre x Catégorie, séparés 10 km et 20 km -->
     <section class="card">
       <div class="toolbar">
-        <h2>Répartition par course, genre et catégorie</h2>
+        <h2>Répartition par genre et catégorie</h2>
         <div class="hint" id="last-update">Dernière mise à jour : <span class="muted">—</span></div>
       </div>
-      <div class="tables">
-        <table id="tbl-counts">
-          <thead>
-            <tr>
-              <th>Course</th>
-              <th>Genre</th>
-              <th>Catégorie</th>
-              <th>Participants</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td colspan="4" class="loading">Chargement…</td></tr>
-          </tbody>
-        </table>
+      <div class="grid2">
+        <div class="tables">
+          <table id="tbl-counts-10">
+            <thead>
+              <tr><th colspan="3">Course 10 km</th></tr>
+              <tr><th>Genre</th><th>Catégorie</th><th>Participants</th></tr>
+            </thead>
+            <tbody><tr><td colspan="3" class="loading">Chargement…</td></tr></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+        <div class="tables">
+          <table id="tbl-counts-20">
+            <thead>
+              <tr><th colspan="3">Course 20 km</th></tr>
+              <tr><th>Genre</th><th>Catégorie</th><th>Participants</th></tr>
+            </thead>
+            <tbody><tr><td colspan="3" class="loading">Chargement…</td></tr></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
       </div>
     </section>
 
-    <!-- Tableau 2 : Extrêmes d’âge par course -->
+    <!-- Tableau 2 : Extrêmes d’âge -->
     <section class="card">
       <h2>Âges extrêmes par course</h2>
       <div class="grid2">
         <div class="tables">
           <table id="tbl-ages-10">
             <thead>
-              <tr>
-                <th colspan="4">Course 10 km</th>
-              </tr>
-              <tr>
-                <th>Type</th>
-                <th>Nom</th>
-                <th>Date de naissance</th>
-                <th>Âge</th>
-              </tr>
+              <tr><th colspan="4">Course 10 km</th></tr>
+              <tr><th>Type</th><th>Nom</th><th>Date de naissance</th><th>Âge</th></tr>
             </thead>
-            <tbody>
-              <tr><td colspan="4" class="muted">En attente de données…</td></tr>
-            </tbody>
+            <tbody><tr><td colspan="4" class="muted">En attente…</td></tr></tbody>
           </table>
         </div>
         <div class="tables">
           <table id="tbl-ages-20">
             <thead>
-              <tr>
-                <th colspan="4">Course 20 km</th>
-              </tr>
-              <tr>
-                <th>Type</th>
-                <th>Nom</th>
-                <th>Date de naissance</th>
-                <th>Âge</th>
-              </tr>
+              <tr><th colspan="4">Course 20 km</th></tr>
+              <tr><th>Type</th><th>Nom</th><th>Date de naissance</th><th>Âge</th></tr>
             </thead>
-            <tbody>
-              <tr><td colspan="4" class="muted">En attente de données…</td></tr>
-            </tbody>
+            <tbody><tr><td colspan="4" class="muted">En attente…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -127,7 +117,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
   <script>
-    // --- Config Firebase (remplacer si besoin) ---
     const firebaseConfig = {
       apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
       authDomain: "calor-run.firebaseapp.com",
@@ -138,209 +127,94 @@
       appId: "1:329949291334:web:c71ef20268c609cf953b47",
       measurementId: "G-YVQPW6JGPK"
     };
-
-    // --- Init ---
-    const app = firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     const el = {
-      countsBody: document.querySelector('#tbl-counts tbody'),
+      counts10Body: document.querySelector('#tbl-counts-10 tbody'),
+      counts10Foot: document.querySelector('#tbl-counts-10 tfoot'),
+      counts20Body: document.querySelector('#tbl-counts-20 tbody'),
+      counts20Foot: document.querySelector('#tbl-counts-20 tfoot'),
       ages10Body: document.querySelector('#tbl-ages-10 tbody'),
       ages20Body: document.querySelector('#tbl-ages-20 tbody'),
       err: document.getElementById('err'),
       lastUpdate: document.querySelector('#last-update span')
     };
 
-    // --- Utils ---
     const today = new Date();
+
     function parseBirthdate(value) {
       if (!value) return null;
-
-      // Si on reçoit un nombre (année)
-      if (typeof value === 'number') {
-        const y = value;
-        if (y > 1900 && y <= today.getFullYear()) return new Date(y, 0, 1);
-        return null;
-      }
-
+      if (typeof value === 'number' && value > 1900) return new Date(value,0,1);
       const raw = String(value).trim();
-
-      // Format YYYY (ex: "1984")
-      if (/^\d{4}$/.test(raw)) {
-        const y = parseInt(raw, 10);
-        if (y > 1900 && y <= today.getFullYear()) return new Date(y, 0, 1);
-        return null;
-      }
-
-      // Normaliser séparateurs
-      const norm = raw.replace(/[.]/g, '/').replace(/-/g, '/');
-
-      // Essais : YYYY/MM/DD ou DD/MM/YYYY
-      const parts = norm.split('/');
-      if (parts.length === 3) {
-        // Heuristique : si la 1re part > 31 => c'est l'année en 1er
-        let y, m, d;
-        if (parseInt(parts[0], 10) > 31) {
-          y = parseInt(parts[0], 10);
-          m = parseInt(parts[1], 10) - 1;
-          d = parseInt(parts[2], 10);
-        } else if (parseInt(parts[2], 10) > 31) {
-          // cas improbable, on garde fallback
-          y = parseInt(parts[2], 10);
-          m = parseInt(parts[1], 10) - 1;
-          d = parseInt(parts[0], 10);
-        } else {
-          // suppose DD/MM/YYYY
-          d = parseInt(parts[0], 10);
-          m = parseInt(parts[1], 10) - 1;
-          y = parseInt(parts[2], 10);
-        }
-        const dt = new Date(y, m, d);
-        return isNaN(dt.getTime()) ? null : dt;
-      }
-
-      // Tentative native
-      const dtn = new Date(raw);
-      return isNaN(dtn.getTime()) ? null : dtn;
+      if (/^\\d{4}$/.test(raw)) return new Date(parseInt(raw,10),0,1);
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
     }
-
-    function computeAge(birthDate) {
-      if (!birthDate) return null;
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+    function computeAge(d) {
+      if (!d) return null;
+      let age = today.getFullYear() - d.getFullYear();
+      const m = today.getMonth()-d.getMonth();
+      if(m<0||(m===0&&today.getDate()<d.getDate())) age--;
       return age;
     }
-
-    function courseLabel(val) {
-      const s = String(val ?? '').trim();
-      if (s === '10' || s.toLowerCase() === '10km' || s === '10 km') return '10 km';
-      if (s === '20' || s.toLowerCase() === '20km' || s === '20 km') return '20 km';
-      return s || '—';
+    function courseLabel(s) {
+      s = String(s||'').toLowerCase();
+      if(s.includes('10')) return '10 km';
+      if(s.includes('20')) return '20 km';
+      return s;
     }
 
-    // --- Rendu tableaux ---
-    function renderCounts(counts) {
-      // counts structure: { [course]: { [genre]: { [categorie]: n } } }
-      const rows = [];
-      const courses = Object.keys(counts).sort((a,b)=> a.localeCompare(b, 'fr'));
-
-      courses.forEach(course => {
-        const byGenre = counts[course] || {};
-        const genres = Object.keys(byGenre).sort((a,b)=> a.localeCompare(b, 'fr'));
-        genres.forEach(genre => {
-          const byCat = byGenre[genre] || {};
-          const cats = Object.keys(byCat).sort((a,b)=> a.localeCompare(b, 'fr'));
-          if (cats.length === 0) {
-            rows.push(`<tr><td>${course}</td><td>${genre || '—'}</td><td>—</td><td>0</td></tr>`);
-          } else {
-            cats.forEach(cat => {
-              rows.push(`<tr><td>${course}</td><td>${genre || '—'}</td><td>${cat || '—'}</td><td>${byCat[cat] ?? 0}</td></tr>`);
-            });
-          }
+    function renderCounts(course, counts, body, foot) {
+      const rows=[]; const subtotals={};
+      Object.keys(counts).forEach(genre=>{
+        const cats=counts[genre];
+        Object.keys(cats).forEach(cat=>{
+          const n=cats[cat];
+          rows.push(`<tr><td>${genre}</td><td>${cat||'—'}</td><td>${n}</td></tr>`);
+          subtotals[genre]=(subtotals[genre]||0)+n;
         });
       });
-
-      el.countsBody.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="4" class="muted">Aucune donnée.</td></tr>`;
+      body.innerHTML = rows.length?rows.join(''):`<tr><td colspan="3" class="muted">Aucune donnée</td></tr>`;
+      const footRows=Object.keys(subtotals).map(g=>`<tr><td colspan="2">Total ${g}</td><td>${subtotals[g]}</td></tr>`);
+      foot.innerHTML=footRows.join('');
     }
 
-    function renderAges(tableBody, oldest, youngest) {
-      const rows = [];
-      if (oldest) {
-        rows.push(`<tr>
-          <td>Plus âgé</td>
-          <td>${oldest.nom ?? ''} ${oldest.prenom ?? ''} <span class="muted">(${oldest.dossard ?? ''})</span></td>
-          <td>${oldest.naissanceRaw ?? '—'}</td>
-          <td>${oldest.age ?? '—'}</td>
-        </tr>`);
-      }
-      if (youngest) {
-        rows.push(`<tr>
-          <td>Plus jeune</td>
-          <td>${youngest.nom ?? ''} ${youngest.prenom ?? ''} <span class="muted">(${youngest.dossard ?? ''})</span></td>
-          <td>${youngest.naissanceRaw ?? '—'}</td>
-          <td>${youngest.age ?? '—'}</td>
-        </tr>`);
-      }
-      tableBody.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="4" class="muted">Aucune donnée utile (dates de naissance manquantes).</td></tr>`;
+    function renderAges(body, oldest, youngest){
+      const rows=[];
+      if(oldest) rows.push(`<tr><td>Plus âgé</td><td>${oldest.nom||''} ${oldest.prenom||''}</td><td>${oldest.naissanceRaw||'—'}</td><td>${oldest.age}</td></tr>`);
+      if(youngest) rows.push(`<tr><td>Plus jeune</td><td>${youngest.nom||''} ${youngest.prenom||''}</td><td>${youngest.naissanceRaw||'—'}</td><td>${youngest.age}</td></tr>`);
+      body.innerHTML=rows.join('')||`<tr><td colspan="4" class="muted">Pas de données</td></tr>`;
     }
 
-    // --- Lecture Firebase + calcul ---
-    function processParticipants(obj) {
-      // Comptages
-      const counts = {}; // course -> genre -> cat -> n
-
-      // Ages par course
-      const perCourse = {
-        '10 km': { oldest: null, youngest: null },
-        '20 km': { oldest: null, youngest: null }
-      };
-
-      const keys = Object.keys(obj || {});
-      keys.forEach(dossard => {
-        const p = obj[dossard] || {};
-        const course = courseLabel(p.course);
-        const genre = (p.genre || '').toString().trim();
-        const cat   = (p.categorie || '').toString().trim();
-
-        // ---- Tableau 1 : comptages
-        counts[course] = counts[course] || {};
-        counts[course][genre] = counts[course][genre] || {};
-        counts[course][genre][cat] = (counts[course][genre][cat] || 0) + 1;
-
-        // ---- Tableau 2 : âges
-        // On essaie plusieurs champs possibles pour la date de naissance
-        const naissanceRaw = p.dateNaissance || p.naissance || p.dob || p.birthdate || p.anneeNaissance || p.birthYear || null;
-        const dBirth = parseBirthdate(naissanceRaw);
-        const age = computeAge(dBirth);
-
-        if ((course === '10 km' || course === '20 km') && age !== null) {
-          const pack = {
-            dossard,
-            nom: p.nom || '',
-            prenom: p.prenom || '',
-            naissanceRaw: naissanceRaw || '—',
-            age
-          };
-          const slot = perCourse[course];
-
-          // Oldest = âge le plus grand
-          if (!slot.oldest || age > slot.oldest.age) slot.oldest = pack;
-          // Youngest = âge le plus petit
-          if (!slot.youngest || age < slot.youngest.age) slot.youngest = pack;
+    db.ref('participants').on('value', snap=>{
+      const data=snap.val()||{};
+      const counts10={}, counts20={};
+      const perCourse={'10 km':{oldest:null,youngest:null},'20 km':{oldest:null,youngest:null}};
+      Object.values(data).forEach(p=>{
+        const course=courseLabel(p.course);
+        const genre=p.genre||'—'; const cat=p.categorie||'—';
+        const target=(course==='10 km')?counts10: (course==='20 km'?counts20:null);
+        if(target){
+          target[genre]=target[genre]||{}; target[genre][cat]=(target[genre][cat]||0)+1;
+          const naissanceRaw=p.dateNaissance||p.naissance||p.dob||p.anneeNaissance;
+          const d=parseBirthdate(naissanceRaw); const age=computeAge(d);
+          if(age!==null){
+            const slot=perCourse[course];
+            const pack={nom:p.nom,prenom:p.prenom,naissanceRaw,age};
+            if(!slot.oldest||age>slot.oldest.age) slot.oldest=pack;
+            if(!slot.youngest||age<slot.youngest.age) slot.youngest=pack;
+          }
         }
       });
-
-      // Rendu
-      renderCounts(counts);
-      renderAges(el.ages10Body, (perCourse['10 km']||{}).oldest, (perCourse['10 km']||{}).youngest);
-      renderAges(el.ages20Body, (perCourse['20 km']||{}).oldest, (perCourse['20 km']||{}).youngest);
-
-      // Last update
-      el.lastUpdate.textContent = new Date().toLocaleTimeString('fr-FR');
-    }
-
-    function showError(msg) {
-      el.err.textContent = msg;
-      el.err.style.display = 'block';
-    }
-
-    // --- Abonnement temps réel ---
-    db.ref('participants').on('value',
-      snap => {
-        try {
-          const data = snap.val() || {};
-          processParticipants(data);
-        } catch (e) {
-          console.error(e);
-          showError("Erreur lors du calcul : " + e.message);
-        }
-      },
-      err => {
-        console.error(err);
-        showError("Erreur de connexion Firebase : " + err.message);
-      }
-    );
+      renderCounts('10 km', counts10, el.counts10Body, el.counts10Foot);
+      renderCounts('20 km', counts20, el.counts20Body, el.counts20Foot);
+      renderAges(el.ages10Body, perCourse['10 km'].oldest, perCourse['10 km'].youngest);
+      renderAges(el.ages20Body, perCourse['20 km'].oldest, perCourse['20 km'].youngest);
+      el.lastUpdate.textContent=new Date().toLocaleTimeString('fr-FR');
+    }, err=>{
+      el.err.textContent="Erreur Firebase: "+err.message; el.err.style.display='block';
+    });
   </script>
 </body>
 </html>
