@@ -1,38 +1,37 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synthèse Participants</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='.9em' font-size='90'>📊</text></svg>">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Synthèse Participants (Firebase)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <style>
-  :root {
-    --bg: #f9f9f9;
-    --fg: #111;
-    --card: #fff;
-    --line: #e5e5e5;
-    --head-grad: linear-gradient(135deg, #215E99 0%, #E61780 100%);
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:24px;}
-  h1{font-size:2rem;margin-bottom:12px;color:#215E99;}
-  .wrap{display:grid;gap:20px;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;}
-  .card h2{font-size:1.2rem;margin-bottom:12px;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media (max-width:900px){.grid2{grid-template-columns:1fr;}}
-  table{width:100%;border-collapse:collapse;}
-  th,td{border:1px solid var(--line);padding:8px 10px;text-align:center;font-size:.95rem;}
-  th{color:#fff;font-weight:700;position:sticky;top:0;z-index:1;background:var(--head-grad);}
-  tbody tr:nth-child(odd){background:#fff;}
-  tbody tr:nth-child(even){background:#f2f2f2;}
-  tbody tr:hover{background:#e0f0ff;transition:0.2s;}
-  tfoot tr{font-weight:700;}
-  tfoot tr.pulse{animation:pulseTotal 1.2s infinite;background:#fffae6;}
-  @keyframes pulseTotal{0%,100%{background:#fffae6;}50%{background:#fff1b8;}}
-  .muted{color:#777;}
-  .loading,.error{text-align:center;padding:14px;}
-  .error{color:#b00020;font-weight:600;}
+:root {
+  --bg: #f9f9f9;
+  --fg: #111;
+  --card: #fff;
+  --line: #e5e5e5;
+  --head-grad: linear-gradient(135deg, #215E99 0%, #E61780 100%);
+}
+* { box-sizing: border-box; margin:0; padding:0; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.5; padding: 24px; }
+h1 { font-size: clamp(1.4rem, 2.5vw, 2rem); margin-bottom: 12px; color:#215E99; }
+.wrap { display: grid; gap: 20px; }
+.card { background: var(--card); border:1px solid var(--line); border-radius: 12px; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:16px; }
+.card h2 { font-size: 1.1rem; margin-bottom:12px; }
+.tables { overflow-x:auto; }
+table { width:100%; border-collapse: collapse; min-width: 360px; margin-bottom:12px; }
+th, td { border:1px solid var(--line); padding: 8px 10px; text-align: center; font-size:.95rem; }
+th { color:#fff; font-weight:700; position:sticky; top:0; z-index:1; background: var(--head-grad); }
+tbody tr:nth-child(odd){ background:#fff; }
+tbody tr:nth-child(even){ background:#f2f2f2; }
+tfoot tr.pulse{animation:pulseTotal 1.2s infinite;background:#fffae6;}
+@keyframes pulseTotal{0%,100%{background:#fffae6;}50%{background:#fff1b8;}}
+.last-update { font-size:0.9rem; color:#555; margin-top:6px; text-align:right; }
+.grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width:900px){ .grid2{grid-template-columns:1fr;} }
+.loading, .error { text-align:center; padding:14px; }
+.error { color: #b00020; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -41,47 +40,48 @@
 
 <div class="wrap">
 
-  <!-- Carte 1 : Catégories -->
+  <!-- Tableau Catégories -->
   <section class="card">
     <h2>Répartition par catégories</h2>
     <div class="grid2">
-      <div>
-        <h3>10 km</h3>
+      <div class="tables">
         <table id="cat10">
           <thead>
             <tr><th>Catégorie</th><th>Nombre F</th><th>Nombre H</th><th>Total</th></tr>
           </thead>
-          <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
+          <tbody><tr><td colspan="4" class="loading">Chargement…</td></tr></tbody>
         </table>
       </div>
-      <div>
-        <h3>20 km</h3>
+      <div class="tables">
         <table id="cat20">
           <thead>
             <tr><th>Catégorie</th><th>Nombre F</th><th>Nombre H</th><th>Total</th></tr>
           </thead>
-          <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
+          <tbody><tr><td colspan="4" class="loading">Chargement…</td></tr></tbody>
         </table>
       </div>
     </div>
+    <div class="last-update">Dernière mise à jour : <span id="update-time">--:--:--</span></div>
   </section>
 
-  <!-- Carte 2 : Âges extrêmes -->
+  <!-- Tableau Âges extrêmes -->
   <section class="card">
-    <h2>Âges extrêmes</h2>
+    <h2>Âges extrêmes par course</h2>
     <div class="grid2">
-      <div>
-        <h3>10 km</h3>
+      <div class="tables">
         <table id="ages10">
-          <thead><tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr></thead>
-          <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
+          <thead>
+            <tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr>
+          </thead>
+          <tbody><tr><td colspan="4" class="muted">En attente…</td></tr></tbody>
         </table>
       </div>
-      <div>
-        <h3>20 km</h3>
+      <div class="tables">
         <table id="ages20">
-          <thead><tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr></thead>
-          <tbody><tr><td colspan="4" class="muted">Chargement…</td></tr></tbody>
+          <thead>
+            <tr><th>Dossard</th><th>Prénom</th><th>Nom</th><th>Âge</th></tr>
+          </thead>
+          <tbody><tr><td colspan="4" class="muted">En attente…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -105,35 +105,41 @@ const firebaseConfig = {
   appId: "1:329949291334:web:c71ef20268c609cf953b47",
   measurementId: "G-YVQPW6JGPK"
 };
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
 
-const el = {
+const el={ 
   cat10: document.querySelector('#cat10 tbody'),
   cat20: document.querySelector('#cat20 tbody'),
   ages10: document.querySelector('#ages10 tbody'),
   ages20: document.querySelector('#ages20 tbody'),
-  err: document.getElementById('err')
+  err: document.getElementById('err'),
+  updateTime: document.getElementById('update-time')
 };
 
-const catOrder=['CA','JU','ES','SE','M0','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10'];
+const catOrder=["CA","JU","ES","SE","M0","M1","M2","M3","M4","M5","M6","M7","M8","M9","M10"];
 
 function parseBirthdate(value){
   if(!value) return null;
-  const y=parseInt(value,10);
-  if(y>1900 && y<=new Date().getFullYear()) return new Date(y,0,1);
-  return null;
+  const d=new Date(value);
+  return isNaN(d.getTime())?null:d;
 }
 function computeAge(birthDate){
   if(!birthDate) return null;
   let age=new Date().getFullYear()-birthDate.getFullYear();
-  if(new Date()<new Date(new Date().getFullYear(),birthDate.getMonth(),birthDate.getDate())) age--;
+  const m=new Date().getMonth()-birthDate.getMonth();
+  if(m<0||(m===0 && new Date().getDate()<birthDate.getDate())) age--;
   return age;
 }
+function updateLastUpdate(){
+  el.updateTime.textContent=new Date().toLocaleTimeString('fr-FR');
+}
+
 function renderCatTable(tableBody, counts){
   let rows=[],totalF=0,totalH=0;
   catOrder.forEach(cat=>{
-    const nF=counts[cat]?.F||0,nH=counts[cat]?.H||0,total=nF+nH;
+    const nF=counts[cat]?.F||0, nH=counts[cat]?.H||0;
+    const total=nF+nH;
     totalF+=nF; totalH+=nH;
     rows.push(`<tr><td>${cat}</td><td>${nF}</td><td>${nH}</td><td>${total}</td></tr>`);
   });
@@ -142,46 +148,53 @@ function renderCatTable(tableBody, counts){
   const percH=grandTotal?Math.round(totalH*100/grandTotal):0;
   tableBody.innerHTML=rows.join('')+`<tfoot><tr class="pulse"><td>Totaux</td><td>${totalF} (${percF}%)</td><td>${totalH} (${percH}%)</td><td>${grandTotal}</td></tr></tfoot>`;
 }
+
 function renderAges(tableBody, oldest, youngest){
   const rows=[];
   if(oldest) rows.push(`<tr><td>${oldest.dossard}</td><td>${oldest.prenom}</td><td>${oldest.nom}</td><td>${oldest.age}</td></tr>`);
   if(youngest) rows.push(`<tr><td>${youngest.dossard}</td><td>${youngest.prenom}</td><td>${youngest.nom}</td><td>${youngest.age}</td></tr>`);
-  tableBody.innerHTML=rows.length?rows.join(''):`<tr><td colspan="4" class="muted">Aucune donnée.</td></tr>`;
+  tableBody.innerHTML=rows.length?rows.join(''):`<tr><td colspan="4" class="muted">Aucune donnée</td></tr>`;
 }
 
-db.ref('participants').on('value',snap=>{
+db.ref('participants').on('value', snap=>{
   try{
     const data=snap.val()||{};
-    const counts10={},counts20={};
-    let oldest10=null,youngest10=null,oldest20=null,youngest20=null;
+    const counts10={}, counts20={};
+    let oldest10=null, youngest10=null, oldest20=null, youngest20=null;
+
     Object.keys(data).forEach(dossard=>{
-      const p=data[dossard]||{};
-      const course=parseInt(p.course,10);
-      const cat=p.categorie||'—';
+      const p=data[dossard];
+      const course=Number(p.course);
       const genre=p.genre||'';
-      // Catégories
-      const targetCounts=course===10?counts10:counts20;
-      targetCounts[cat]=targetCounts[cat]||{F:0,H:0};
-      if(genre.toLowerCase()==='f' || genre.toLowerCase()==='femme') targetCounts[cat].F++;
-      else targetCounts[cat].H++;
-      // Âges extrêmes
+      const cat=p.categorie||'';
       const birth=parseBirthdate(p.date_naiss);
       const age=computeAge(birth);
-      const pack={dossard,nom:p.nom||'',prenom:p.prenom||'',age};
-      if(course===10 && age!=null){
-        if(!oldest10 || age>oldest10.age) oldest10=pack;
-        if(!youngest10 || age<youngest10.age) youngest10=pack;
-      }
-      if(course===20 && age!=null){
-        if(!oldest20 || age>oldest20.age) oldest20=pack;
-        if(!youngest20 || age<youngest20.age) youngest20=pack;
+
+      // Comptages catégories
+      const targetCounts=course===10?counts10:counts20;
+      if(!targetCounts[cat]) targetCounts[cat]={F:0,H:0};
+      if(genre.toLowerCase()==='f') targetCounts[cat].F++;
+      else targetCounts[cat].H++;
+
+      // Âges extrêmes
+      const targetAge=course===10?{oldest:oldest10,youngest:youngest10}:{oldest:oldest20,youngest:youngest20};
+      if(age!==null){
+        if(course===10){
+          if(!oldest10||age>oldest10.age) oldest10={dossard,p.nom,p.prenom,age};
+          if(!youngest10||age<youngest10.age) youngest10={dossard,p.nom,p.prenom,age};
+        }else if(course===20){
+          if(!oldest20||age>oldest20.age) oldest20={dossard,p.nom,p.prenom,age};
+          if(!youngest20||age<youngest20.age) youngest20={dossard,p.nom,p.prenom,age};
+        }
       }
     });
+
     renderCatTable(el.cat10,counts10);
     renderCatTable(el.cat20,counts20);
     renderAges(el.ages10,oldest10,youngest10);
     renderAges(el.ages20,oldest20,youngest20);
-  }catch(e){el.err.textContent="Erreur: "+e.message;el.err.style.display='block';console.error(e);}
+    updateLastUpdate();
+  }catch(e){el.err.textContent="Erreur : "+e.message; el.err.style.display='block'; console.error(e);}
 });
 </script>
 </body>
