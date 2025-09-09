@@ -9,78 +9,96 @@
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #f0f0f0; }
     caption { font-weight: bold; margin-bottom: 5px; }
+    select { margin: 10px 0; padding: 5px; font-size: 1em; }
   </style>
 </head>
 <body>
-  <h2>Tableau pivoté : Nombre de participants par genre et par catégorie</h2>
-  <div id="pivot-tables"></div>
+  <h2>Statistiques des participants</h2>
 
-  <h2>Participants le plus jeune et le plus âgé</h2>
-  <div id="extremes-tables"></div>
+  <label for="course-select">Choisir une course :</label>
+  <select id="course-select">
+    <option value="10km">10 km</option>
+    <option value="20km">20 km</option>
+  </select>
 
+  <div id="pivot-table"></div>
+  <div id="extremes-table"></div>
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
-    // 🔹 Config Firebase (à remplacer par la tienne)
+    // 🔹 Mets ici tes identifiants Firebase
     const firebaseConfig = {
-      apiKey: "XXX",
-      authDomain: "XXX",
-      databaseURL: "XXX",
-      projectId: "XXX",
-      storageBucket: "XXX",
-      messagingSenderId: "XXX",
-      appId: "XXX"
+      apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+      authDomain: "calor-run.firebaseapp.com",
+      databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "calor-run",
+      storageBucket: "calor-run.firebasestorage.app",
+      messagingSenderId: "329949291334",
+      appId: "1:329949291334:web:c71ef20268c609cf953b47",
+      measurementId: "G-YVQPW6JGPK"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 🔹 Récupération des participants
+    let participants = [];
+
+    // Récupérer une seule fois les données
     db.ref("participants").once("value").then(snapshot => {
-      const data = snapshot.val();
-      const participants = Object.values(data || {});
-
-      // Regrouper par course
-      const courses = ["10km", "20km"];
-      const genres = ["H", "F"]; // ajustable
-      const pivotContainer = document.getElementById("pivot-tables");
-      const extremesContainer = document.getElementById("extremes-tables");
-
-      courses.forEach(course => {
-        // Tableau pivoté
-        const filtered = participants.filter(p => p.course === course);
-        const categories = [...new Set(filtered.map(p => p.cat))];
-        let tableHTML = `<table><caption>${course}</caption><thead><tr><th>Catégorie</th>`;
-        genres.forEach(g => tableHTML += `<th>${g}</th>`);
-        tableHTML += `</tr></thead><tbody>`;
-        categories.forEach(cat => {
-          tableHTML += `<tr><td>${cat}</td>`;
-          genres.forEach(g => {
-            const count = filtered.filter(p => p.cat === cat && p.genre === g).length;
-            tableHTML += `<td>${count}</td>`;
-          });
-          tableHTML += `</tr>`;
-        });
-        tableHTML += `</tbody></table>`;
-        pivotContainer.innerHTML += tableHTML;
-
-        // Tableau extrêmes (âge)
-        if (filtered.length > 0) {
-          const sorted = filtered.sort((a,b) => a.age - b.age);
-          const youngest = sorted[0];
-          const oldest = sorted[sorted.length - 1];
-          extremesContainer.innerHTML += `
-            <table>
-              <caption>${course}</caption>
-              <thead><tr><th>Type</th><th>Nom</th><th>Prénom</th><th>Âge</th><th>Catégorie</th><th>Genre</th></tr></thead>
-              <tbody>
-                <tr><td>Plus jeune</td><td>${youngest.nom}</td><td>${youngest.prenom}</td><td>${youngest.age}</td><td>${youngest.cat}</td><td>${youngest.genre}</td></tr>
-                <tr><td>Plus âgé</td><td>${oldest.nom}</td><td>${oldest.prenom}</td><td>${oldest.age}</td><td>${oldest.cat}</td><td>${oldest.genre}</td></tr>
-              </tbody>
-            </table>
-          `;
-        }
-      });
+      participants = Object.values(snapshot.val() || {});
+      renderTables("10km"); // affichage par défaut
     });
+
+    document.getElementById("course-select").addEventListener("change", (e) => {
+      renderTables(e.target.value);
+    });
+
+    function renderTables(course) {
+      const pivotContainer = document.getElementById("pivot-table");
+      const extremesContainer = document.getElementById("extremes-table");
+      pivotContainer.innerHTML = "";
+      extremesContainer.innerHTML = "";
+
+      const filtered = participants.filter(p => p.course === course);
+      if (filtered.length === 0) {
+        pivotContainer.innerHTML = "<p>Aucun participant pour cette course.</p>";
+        return;
+      }
+
+      const genres = ["H", "F"];
+      const categories = [...new Set(filtered.map(p => p.cat))];
+
+      // 🔹 Tableau pivoté
+      let tableHTML = `<table><caption>${course} – Répartition</caption><thead><tr><th>Catégorie</th>`;
+      genres.forEach(g => tableHTML += `<th>${g}</th>`);
+      tableHTML += `</tr></thead><tbody>`;
+      categories.forEach(cat => {
+        tableHTML += `<tr><td>${cat}</td>`;
+        genres.forEach(g => {
+          const count = filtered.filter(p => p.cat === cat && p.genre === g).length;
+          tableHTML += `<td>${count}</td>`;
+        });
+        tableHTML += `</tr>`;
+      });
+      tableHTML += `</tbody></table>`;
+      pivotContainer.innerHTML = tableHTML;
+
+      // 🔹 Tableau extrêmes
+      const sorted = [...filtered].sort((a, b) => a.age - b.age);
+      const youngest = sorted[0];
+      const oldest = sorted[sorted.length - 1];
+      extremesContainer.innerHTML = `
+        <table>
+          <caption>${course} – Extrêmes</caption>
+          <thead><tr><th>Type</th><th>Nom</th><th>Prénom</th><th>Âge</th><th>Catégorie</th><th>Genre</th></tr></thead>
+          <tbody>
+            <tr><td>Plus jeune</td><td>${youngest.nom}</td><td>${youngest.prenom}</td><td>${youngest.age}</td><td>${youngest.cat}</td><td>${youngest.genre}</td></tr>
+            <tr><td>Plus âgé</td><td>${oldest.nom}</td><td>${oldest.prenom}</td><td>${oldest.age}</td><td>${oldest.cat}</td><td>${oldest.genre}</td></tr>
+          </tbody>
+        </table>
+      `;
+    }
   </script>
 </body>
 </html>
