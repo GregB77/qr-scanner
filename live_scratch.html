@@ -3,17 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Calor Run</title>
+<title>LIVE TRAIL CALOR RUN</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱️</text></svg>">
-<link rel="stylesheet" href="styles.css">
-<script defer src="scripts.js"></script>
+<style>
+/* Réinitialisation */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 20px;
+  background: #f9f9f9;
+  color: #000;
+  line-height: 1.4;
+  overflow-x: hidden;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Dark theme */
+body.dark { background: #121212; color: #eee; }
+
+.chrono-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3em;
+  margin: 20px 0 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #215E99 0%, #E61780 100%);
+  border-radius: 15px;
+  color: white;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.chrono-icon {
+  flex-shrink: 0;
+  font-size: clamp(2rem, 6vw, 3.5rem); /* même taille que chrono */
+}
+
+.chrono-time {
+  font-family: 'Courier New', monospace;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  display: inline-block;
+  min-width: 8em;
+  animation: chronoPulse 2s ease-in-out infinite;
+}
+
+@keyframes chronoPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.chrono-time.paused { opacity: 0.7; animation: none; }
+
+.loading, .error { text-align: center; font-size: 1.2rem; margin: 40px 0; }
+
+.compteurs { text-align: center; margin-bottom: 30px; font-weight: bold; }
+.compteur { display: inline-block; margin: 5px 10px; padding: 10px 15px; color: white; border-radius: 5px; min-width: 120px; transition: transform 0.2s ease; }
+.compteur:nth-child(1){background:#215E99;}
+.compteur:nth-child(2){background:#E61780;}
+
+.table-container { overflow-x:auto; margin-bottom:40px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+table { width:100%; border-collapse: collapse; background:white; min-width:800px; }
+body.dark table { background:#1e1e1e; }
+th, td { border:1px solid #ddd; padding:8px; text-align:center; font-size:0.9rem; }
+th { background: linear-gradient(135deg, #215E99 0%, #E61780 100%); color:#fff; font-weight:bold; position:sticky; top:0; z-index:10; }
+tbody tr:nth-child(odd){background:#fff;}
+tbody tr:nth-child(even){background:#f2f2f2;}
+body.dark tbody tr:nth-child(odd){background:#222;}
+body.dark tbody tr:nth-child(even){background:#333;}
+
+.last-update { text-align:center; font-size:0.9rem; margin-top:20px; }
+.last-update a { color: inherit; text-decoration: underline; cursor: pointer; }
+
+@media (max-width:768px){ body{margin:10px;} .compteur{display:block;margin:5px auto;max-width:200px;} th,td{padding:6px;font-size:0.8rem;} }
+</style>
 </head>
 <body>
 
 <div id="chrono-container" class="chrono-container">
-  <div class="chrono-time" id="chrono-time">
-    ⏱️ <span id="chrono-text">--:--:--</span>
-  </div>
+  <span class="chrono-icon">⏱️</span>
+  <div class="chrono-time" id="chrono-time">--:--:--</div>
+  <span class="chrono-icon">⏱️</span>
 </div>
 
 <div id="loading" class="loading">Connexion en temps réel...</div>
@@ -44,6 +117,115 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-<script src="scripts.js"></script>
+<script>
+// --- JS ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAIAAz51gEGKQd0EoqA3yUhvnqw3DkQiIo",
+  authDomain: "calor-run.firebaseapp.com",
+  databaseURL: "https://calor-run-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "calor-run",
+  storageBucket: "calor-run.firebasestorage.app",
+  messagingSenderId: "329949291334",
+  appId: "1:329949291334:web:c71ef20268c609cf953b47",
+  measurementId: "G-YVQPW6JGPK"
+};
+
+let departureTimestamp=null, participants={}, scans={}, currentClassement=[], chronoInterval=null;
+let previousCounts={count10:0,count20:0};
+const elements={
+  loading:document.getElementById('loading'),
+  compteurs:document.getElementById('compteurs'),
+  tableContainer:document.getElementById('table-container'),
+  error:document.getElementById('error'),
+  count10:document.getElementById('count-10'),
+  count20:document.getElementById('count-20'),
+  compteur10:document.getElementById('compteur-10'),
+  compteur20:document.getElementById('compteur-20'),
+  tbody:document.querySelector('#classement tbody'),
+  lastUpdate:document.getElementById('last-update'),
+  updateTime:document.getElementById('update-time'),
+  chronoTime:document.getElementById('chrono-time'),
+  themeToggle:document.getElementById('theme-toggle')
+};
+
+const app=firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+
+function formatTime(ms){
+  const sec=Math.floor(ms/1000);
+  const h=String(Math.floor(sec/3600)).padStart(2,'0');
+  const m=String(Math.floor((sec%3600)/60)).padStart(2,'0');
+  const s=String(sec%60).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+
+function startChrono(){
+  if(chronoInterval) clearInterval(chronoInterval);
+  if(!departureTimestamp){ elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); return;}
+  elements.chronoTime.classList.remove('paused');
+  const update=()=>{
+    const elapsed=Date.now()-departureTimestamp;
+    if(elapsed<0){ elements.chronoTime.textContent=`-${formatTime(Math.abs(elapsed))}`; elements.chronoTime.classList.add('paused'); }
+    else{ elements.chronoTime.textContent=formatTime(elapsed); elements.chronoTime.classList.remove('paused'); }
+  };
+  update();
+  chronoInterval=setInterval(update,1000);
+}
+
+function stopChrono(){ if(chronoInterval) clearInterval(chronoInterval); elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); }
+
+function updateLastUpdateTime(){ elements.updateTime.textContent=new Date().toLocaleTimeString('fr-FR'); elements.lastUpdate.style.display='block'; }
+
+function createTableRow(p){ const tr=document.createElement('tr'); tr.innerHTML=`
+<td>${p.dossard}</td><td>${p.nom}</td><td>${p.prenom}</td><td>${p.tempsStr}</td><td>${p.course}</td>
+<td>${p.scratch}</td><td>${p.genre}</td><td>${p.posGenre}</td><td>${p.categorie}</td><td>${p.posCat}</td>`; return tr; }
+
+function calculatePositions(classement){
+  const scratchCounter={}, genreCounter={}, catCounter={}; let count10=0, count20=0;
+  classement.forEach(p=>{
+    const c=p.course.toString().trim();
+    if(c==='10'||c==='10km'||c==='10 km') count10++; else if(c==='20'||c==='20km'||c==='20 km') count20++;
+    scratchCounter[p.course]=(scratchCounter[p.course]||0)+1; p.scratch=scratchCounter[p.course];
+    const keyG=`${p.course}_${p.genre}`; genreCounter[keyG]=(genreCounter[keyG]||0)+1; p.posGenre=genreCounter[keyG];
+    const keyC=`${p.course}_${p.categorie}`; catCounter[keyC]=(catCounter[keyC]||0)+1; p.posCat=catCounter[keyC];
+  });
+  return {count10,count20};
+}
+
+function displayData(classement,count10,count20){
+  const fragment=document.createDocumentFragment();
+  classement.forEach(p=>fragment.appendChild(createTableRow(p)));
+  elements.tbody.innerHTML=''; elements.tbody.appendChild(fragment);
+  elements.loading.style.display='none'; elements.compteurs.style.display='block'; elements.tableContainer.style.display='block';
+  elements.count10.textContent=count10; elements.count20.textContent=count20;
+  updateLastUpdateTime(); currentClassement=[...classement];
+}
+
+function updateClassement(){
+  if(!departureTimestamp||Object.keys(scans).length===0) return;
+  try{
+    let classement=Object.keys(scans).map(dossard=>{
+      const scan=scans[dossard]; const part=participants[dossard]||{};
+      const tMs=new Date(scan.dateTime).getTime()-departureTimestamp;
+      return { dossard, nom:part.nom||'', prenom:part.prenom||'', tempsMs:tMs, tempsStr:formatTime(tMs),
+        course:part.course||'', genre:part.genre||'', categorie:part.categorie||'' };
+    }).sort((a,b)=>b.tempsMs-a.tempsMs); // dernier arrivé en haut
+    const {count10,count20}=calculatePositions(classement);
+    displayData(classement,count10,count20);
+  }catch(err){ console.error(err); }
+}
+
+// Firebase listeners
+db.ref('data/depart_course').on('value',snap=>{ departureTimestamp=snap.exists()?new Date(snap.val()).getTime():null; if(departureTimestamp) startChrono(); else stopChrono(); updateClassement(); });
+db.ref('participants').on('value',snap=>{ participants=snap.val()||{}; updateClassement(); });
+db.ref('scan_dossards').on('value',snap=>{ scans=snap.val()||{}; updateClassement(); });
+
+// Theme toggle
+elements.themeToggle.addEventListener('click',e=>{ e.preventDefault(); document.body.classList.toggle('dark'); });
+
+// Init
+document.addEventListener('DOMContentLoaded',()=>{ elements.chronoTime.textContent="--:--:--"; elements.chronoTime.classList.add('paused'); });
+</script>
+
 </body>
 </html>
